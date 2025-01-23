@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 3
+names: ['damaged-blade', 'solid-blade', 'wind-turbine']
+
+roboflow:
+  workspace: ataturk-university-qll0a
+  project: wind-turbine-detection-ygcf1
+  version: 2
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/ataturk-university-qll0a/wind-turbine-detection-ygcf1/dataset/2
