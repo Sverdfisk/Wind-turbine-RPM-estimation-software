@@ -110,19 +110,3 @@ if __name__ == '__main__':
     stparams = get_shi_tomasi_params()
 
     get_optical_flow(feed, stparams, lkparams)
-
-
-if __name__ == '__main__':
-    # Set this and pass as an argument in calculate_optical_flow() if other drawing colors are desired
-    # colors=np.random.randint(0, 255, (100, 3))
-    video_feed_path = '/dev/video2'
-    feed = cv.VideoCapture(video_feed_path) 
-    # fromx = 140
-    # tox = 380
-    # fromy = 170
-    # toy = 470
-    # coords = [[fromx,tox], [fromy,toy]]
-    lkparams = get_lucas_kanade_params()
-    stparams = get_shi_tomasi_params()
-
-    get_optical_flow(feed, stparams, lkparams)
