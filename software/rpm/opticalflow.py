@@ -4,9 +4,9 @@ import cv2 as cv
 maskpoints = []
 
 def set_shi_tomasi_params(maxCorners = 100, 
-                        qualityLevel = 0.3, 
-                        minDistance = 7, 
-                        blockSize = 2):
+                        qualityLevel = 0.1, 
+                        minDistance = 9, 
+                        blockSize = 3):
     return locals()
 
 def set_lucas_kanade_params(winSize = (15, 15), 
@@ -65,18 +65,18 @@ def get_optical_flow(video_feed_path,
         old_frame = old_frame[crop_points[0][0]:crop_points[0][1], 
                             crop_points[1][0]:crop_points[1][1]]
 
-    feature_mask = generate_mask_matrix(old_frame, [100,100])
+    feature_mask = generate_mask_matrix(old_frame, [30,30])
 
     # Convert to grayscale for algorithmic purposes
     old_gray = cv.cvtColor(old_frame, cv.COLOR_BGR2GRAY)
 
-    #mask = np.zeros_like(old_frame)
+    mask = np.zeros_like(old_frame)
 
 
     while(1):
 
         #Move this out of the while loop for more persistent tracking
-        mask = np.zeros_like(old_frame)
+        #mask = np.zeros_like(old_frame)
 
         #This is the updating frame, we need at least 2 frames to start the algorithm
         ret, frame = feed.read()
@@ -101,10 +101,7 @@ def get_optical_flow(video_feed_path,
         # Add the mask over the frame, creating a new image
         img = cv.add(frame, mask)
         red = [0,0,255]
-        fromx = maskpoints[0]
-        tox = maskpoints[1]
-        fromy = maskpoints[2]
-        toy = maskpoints[3]
+        fromx, tox, fromy, toy = maskpoints
         cv.circle(img, (fromx,toy), 4, red, -1)
         cv.circle(img, (fromx,fromy), 4, red, -1)
         cv.circle(img, (tox,fromy), 4, red, -1)
@@ -136,4 +133,5 @@ if __name__ == '__main__':
     video_feed_path = '/dev/video2'
     stparams = set_shi_tomasi_params()
     lkparams = set_lucas_kanade_params()
-    get_optical_flow(video_feed_path, stparams, lkparams)
+    crop_points = [[150,400],[200,500]]
+    get_optical_flow(video_feed_path, stparams, lkparams, crop_points)
