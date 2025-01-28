@@ -8,6 +8,7 @@ class opticalflow():
         self.lk_params = self.set_lucas_kanade_params()
         self.crop_points = self.set_crop_points()
         self.set_crosshair_size()
+        self.color = np.random.randint(0, 255, (100, 3))
 
     def set_crosshair_size(self, size = [10,10]):
         if size is not None:
@@ -15,8 +16,12 @@ class opticalflow():
         else:
             pass
 
+    def set_mask_size(self, crop_points):
+        self.mask = np.zeros_like(self.get_frame())
+
     def set_crop_points(self, points = None):
         self.crop_points = points
+        self.set_mask_size(self.crop_points)
 
     def set_shi_tomasi_params(self, maxCorners = 100, 
                               qualityLevel = 0.1, 
@@ -60,13 +65,25 @@ class opticalflow():
 
         if self.crop_points is not None:
             frame = frame[self.crop_points[0][0]:self.crop_points[0][1], 
-                      self.crop_points[1][0]:self.crop_points[1][1]]
+                          self.crop_points[1][0]:self.crop_points[1][1]]
             
         return frame if ret else np.zeros_like(frame)
     
     # The model uses the mask parameter to ignore the middle.
     # The model is assumes a dead zone is desired with the 
     # wind turbine hub in the centre of the frame.
+
+    def draw_optical_flow(self, mask, image, old_points, new_points, overwrite = True):
+        if overwrite:
+            mask = np.zeros_like(image)
+        
+        for i, (new, old) in enumerate(zip(new_points, old_points)):
+            a, b = new.ravel()
+            c, d = old.ravel()
+            mask = cv.line(mask, (int(a), int(b)), (int(c), int(d)), self.color[i].tolist(), 2)
+            image = cv.circle(image, (int(a), int(b)), 5, self.color[i].tolist(), -1)
+
+        return mask, (cv.add(self.mask, image))
 
     def get_optical_flow_vectors(self, frame):
 
@@ -88,7 +105,7 @@ class opticalflow():
         frame_gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 
         # calculate optical flow
-        p1, st, err = cv.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **self.lk_params)
+        p1, st, _ = cv.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **self.lk_params)
 
         #Select good tracking points
         #TODO: implement threshold in indexing here
