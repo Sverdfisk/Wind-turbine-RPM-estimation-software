@@ -2,13 +2,16 @@ import numpy as np
 import cv2 as cv
 
 class opticalflow():
-    def __init__(self, video_feed_path):
+    def __init__(self, video_feed_path, crop_points):
         self.feed = cv.VideoCapture(video_feed_path)
+        self.old_frame = self.get_frame()
         self.st_params = self.set_shi_tomasi_params()
         self.lk_params = self.set_lucas_kanade_params()
-        self.crop_points = self.set_crop_points()
+        self.crop_points = self.set_crop_points(crop_points)
         self.set_crosshair_size()
+        #Sets initial frame. Is also used as prev_frame when recording starts
         self.color = np.random.randint(0, 255, (100, 3))
+        self.feature_mask = self.generate_feature_mask_matrix(self.old_frame)
 
     def set_crosshair_size(self, size = [10,10]):
         if size is not None:
@@ -17,7 +20,11 @@ class opticalflow():
             pass
 
     def set_mask_size(self, crop_points):
-        self.mask = np.zeros_like(self.get_frame())
+        if self.crop_points is not None:
+            self.mask = np.zeros_like(self.old_frame[self.crop_points[0][0]:self.crop_points[0][1], 
+                                                     self.crop_points[1][0]:self.crop_points[1][1]])    
+        else:
+            self.mask = np.zeros_like(self.old_frame)
 
     def set_crop_points(self, points = None):
         self.crop_points = points
@@ -85,27 +92,18 @@ class opticalflow():
 
         return mask, (cv.add(self.mask, image))
 
-    def get_optical_flow_vectors(self, frame):
+    def get_optical_flow_vectors(self):
 
-        # We do this to have 2 running frames to calculate flow
-        # TODO: see if this can cause unexpected behavior when
-        # polled in weird ways from the outside
-
-        old_frame = frame
-        old_gray = cv.cvtColor(old_frame, cv.COLOR_BGR2GRAY)
-
+        old_frame_gray = cv.cvtColor(self.old_frame, cv.COLOR_BGR2GRAY)
         new_frame = self.get_frame()
 
-        # It does not matter which frame we pass in, just that the
-        # image matrix has the correct size
-        feature_mask = self.generate_feature_mask_matrix(new_frame)
-
         # find features in our old grayscale frame. feature mask is dynamic but manual
-        p0 = cv.goodFeaturesToTrack(old_gray, mask = feature_mask, **self.st_params)
-        frame_gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+        p0 = cv.goodFeaturesToTrack(old_frame_gray, mask = self.feature_mask, **self.st_params)
+
+        new_frame_gray = cv.cvtColor(new_frame, cv.COLOR_BGR2GRAY)
 
         # calculate optical flow
-        p1, st, _ = cv.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **self.lk_params)
+        p1, st, _ = cv.calcOpticalFlowPyrLK(old_frame_gray, new_frame_gray, p0, None, **self.lk_params)
 
         #Select good tracking points
         #TODO: implement threshold in indexing here
@@ -113,5 +111,8 @@ class opticalflow():
             good_new = p1[st==1]
             good_old = p0[st==1]
 
-        return good_old, good_new
+        #Set the new frame to be considered "old" for next call
+        self.old_frame = new_frame
+
+        return (good_old, good_new), new_frame
 
