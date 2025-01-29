@@ -133,5 +133,4 @@ if __name__ == '__main__':
     video_feed_path = '/dev/video2'
     stparams = set_shi_tomasi_params()
     lkparams = set_lucas_kanade_params()
-    crop_points = [[150,400],[200,500]]
-    get_optical_flow(video_feed_path, stparams, lkparams, crop_points)
+    get_optical_flow(video_feed_path, stparams, lkparams)
