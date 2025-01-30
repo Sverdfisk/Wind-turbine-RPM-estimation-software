@@ -2,7 +2,7 @@ import numpy as np
 import cv2 as cv
 
 class opticalflow():
-    def __init__(self, video_feed_path, crop_points = None):
+    def __init__(self, video_feed_path, crop_points = None, crosshair_size = [15,15]):
 
         #Video feed settings
         self.feed = cv.VideoCapture(video_feed_path)
@@ -13,14 +13,14 @@ class opticalflow():
         #Algorithm config
         self.st_params = self.set_shi_tomasi_params()
         self.lk_params = self.set_lucas_kanade_params()
-        self.set_crosshair_size()
+        self.set_crosshair_size(crosshair_size)
         self.feature_mask = self.generate_feature_mask_matrix(self.old_frame)
 
         #Color for drawing purposes
         self.color = np.random.randint(0, 255, (100, 3))
-        self.threshold = 5
+        self.threshold = 10
 
-    def set_crosshair_size(self, size = [20,20]):
+    def set_crosshair_size(self, size):
         if size is not None:
             self.crosshair_size_x, self.crosshair_size_y = size
         else:
@@ -108,6 +108,12 @@ class opticalflow():
         # find features in our old grayscale frame. feature mask is dynamic but manual
         p0 = cv.goodFeaturesToTrack(old_frame_gray, mask = self.feature_mask, **self.st_params)
         p1, st, err = cv.calcOpticalFlowPyrLK(old_frame_gray, new_frame_gray, p0, None, **self.lk_params)
+
+
+        #TODO: implement some cool filters here later to 
+        # get better tracking data
+        # self.threshold = 5 is SUPER strict
+        #self.threshold = np.percentile(err, 90)
 
         #Select good tracking points based on successful tracking
         if p1 is not None:
