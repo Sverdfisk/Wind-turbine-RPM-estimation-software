@@ -27,11 +27,7 @@ class opticalflow():
             pass
 
     def set_mask_size(self):
-        if self.crop_points is not None:
-            self.mask = np.zeros_like(self.old_frame[self.crop_points[0][0]:self.crop_points[0][1], 
-                                                     self.crop_points[1][0]:self.crop_points[1][1]])    
-        else:
-            self.mask = np.zeros_like(self.old_frame)
+        self.mask = np.zeros_like(self.old_frame)    
 
     def set_shi_tomasi_params(self, maxCorners = 100, 
                               qualityLevel = 0.05, 
@@ -83,7 +79,7 @@ class opticalflow():
     # The model is assumes a dead zone is desired with the 
     # wind turbine hub in the centre of the frame.
 
-    def draw_optical_flow(self, image, old_points, new_points, overwrite = True):
+    def draw_optical_flow(self, image, old_points, new_points, overwrite = False):
         if overwrite:
             self.mask = np.zeros_like(image)
         
@@ -101,23 +97,19 @@ class opticalflow():
         cv.circle(self.mask, (tox,fromy), 4, red, -1)
         cv.circle(self.mask, (tox,toy), 4, red, -1) 
 
-        return self.mask, (cv.add(self.mask, image))
+        return (cv.add(self.mask, image))
 
     def get_optical_flow_vectors(self):
 
         old_frame_gray = cv.cvtColor(self.old_frame, cv.COLOR_BGR2GRAY)
         new_frame = self.get_frame()
-
+        new_frame_gray = cv.cvtColor(new_frame, cv.COLOR_BGR2GRAY)
+        
         # find features in our old grayscale frame. feature mask is dynamic but manual
         p0 = cv.goodFeaturesToTrack(old_frame_gray, mask = self.feature_mask, **self.st_params)
-
-        new_frame_gray = cv.cvtColor(new_frame, cv.COLOR_BGR2GRAY)
-
-        # calculate optical flow
         p1, st, err = cv.calcOpticalFlowPyrLK(old_frame_gray, new_frame_gray, p0, None, **self.lk_params)
 
-        #Select good tracking points
-        #TODO: implement threshold in indexing here
+        #Select good tracking points based on successful tracking
         if p1 is not None:
             good_new = p1[(st == 1) & (err < self.threshold)]
             good_old = p0[(st == 1) & (err < self.threshold)]

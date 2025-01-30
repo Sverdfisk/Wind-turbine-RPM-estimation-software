@@ -10,7 +10,7 @@ feed = flow.opticalflow(feed_path, crop_points)
 
 while(1):
     data, frame = feed.get_optical_flow_vectors()
-    mask, flow_image = feed.draw_optical_flow(frame, data[0], data[1], overwrite=False)
+    flow_image = feed.draw_optical_flow(frame, data[0], data[1])
  
     cv.imshow('Camera feed', flow_image)
     k = cv.waitKey(30) & 0xff
