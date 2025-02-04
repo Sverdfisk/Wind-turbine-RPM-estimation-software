@@ -16,9 +16,14 @@ class opticalflow():
         self.set_crosshair_size(crosshair_size)
         self.feature_mask = self.generate_feature_mask_matrix(self.old_frame)
 
+        # ---Not currently in use---
+        # Sets tracking point threshold. A reasonable range is 0 to about 60  (10 is strict).
+        # lower threshold -> better confidence is needed to set a correlation as "successful".
+        # higher threshold -> More options for pixels that could be the one we track. Noisy, but more data.
+        self.threshold = 10
+
         #Color for drawing purposes
         self.color = np.random.randint(0, 255, (100, 3))
-        self.threshold = 10
 
     def set_crosshair_size(self, size):
         if size is not None:
@@ -75,10 +80,8 @@ class opticalflow():
             
         return frame if ret else np.zeros_like(frame)
     
-    # The model uses the mask parameter to ignore the middle.
-    # The model is assumes a dead zone is desired with the 
-    # wind turbine hub in the centre of the frame.
-
+    # The model uses the feature_mask parameter to ignore a section in the middle of the image.
+    # The model is assumes a dead zone is desired with the wind turbine hub in the centre of the frame.
     def draw_optical_flow(self, image, old_points, new_points, overwrite = False):
         if overwrite:
             self.mask = np.zeros_like(image)
