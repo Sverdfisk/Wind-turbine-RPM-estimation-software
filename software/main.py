@@ -7,11 +7,10 @@ import numpy as np
 # Main runner file, only used to setup and run the actual scripts.
 # Look at rpm/opticalflow.py and rpm/calculate_rpm.py for details
 
-
 # Feed configuration
 np.set_printoptions(formatter={'all':lambda x: str(x)})
-feed_path = '/dev/video2'
-crop_points = [[100,300],[100,300]]
+feed_path = '/home/ken/projects/windturbine/software/rpm/windmill_10fps.gif'
+crop_points = [[60,320],[50,310]]
 crosshair_size = [20,15]
 frame_rate = 10
 
@@ -19,15 +18,7 @@ feed = flow.opticalflow(feed_path,
                         crop_points = crop_points, 
                         crosshair_size = crosshair_size, 
                         fps=frame_rate)
-# For fps management
-#_prev = 0
-
 while(1):
-
-# Simple Frame limiter
-#time_elapsed = time.time() - _prev
-#if time_elapsed > 1./frame_rate:
-    #_prev = time.time()
 
     # Do image stuff
     # crop_points = AI.do_something_that_fixes_my_problem(model=theGoodOne)

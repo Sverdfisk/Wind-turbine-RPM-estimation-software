@@ -76,7 +76,7 @@ class opticalflow():
     def get_frame(self):
         ret, frame = self.feed.read()
 
-        if self.crop_points is not None:
+        if (self.crop_points is not None) and ret:
             frame = frame[self.crop_points[0][0]:self.crop_points[0][1], 
                           self.crop_points[1][0]:self.crop_points[1][1]]
             
