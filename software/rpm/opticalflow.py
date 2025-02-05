@@ -2,10 +2,12 @@ import numpy as np
 import cv2 as cv
 
 class opticalflow():
-    def __init__(self, video_feed_path, crop_points = None, crosshair_size = [15,15]):
+    def __init__(self, video_feed_path, crop_points = None, crosshair_size = [15,15], fps=60):
 
         #Video feed settings
         self.feed = cv.VideoCapture(video_feed_path)
+        self.fps = fps
+        self.feed.set(cv.CAP_PROP_FPS, self.fps)
         self.crop_points = crop_points
         self.old_frame = self.get_frame()
         self.set_mask_size()
@@ -120,8 +122,8 @@ class opticalflow():
 
         #Select good tracking points based on successful tracking
         if p1 is not None:
-            good_new = p1[(st == 1) & (err < self.threshold)]
-            good_old = p0[(st == 1) & (err < self.threshold)]
+            good_new = p1[(st == 1) & (abs(err) < self.threshold)]
+            good_old = p0[(st == 1) & (abs(err) < self.threshold)]
 
         #Set the new frame to be considered "old" for next call
         self.old_frame = new_frame
