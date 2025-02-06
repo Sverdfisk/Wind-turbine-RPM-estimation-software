@@ -28,7 +28,6 @@ def filter_magnitudes(magnitudes):
 rpms = []
 errors = []
 fps = 10
-frame_time = 1/fps
 pixel_radius = 100
 real_rpm = 13
 mag_scaling_factor = math.e # WHY?????? WHY DOES THIS WORK???
