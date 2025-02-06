@@ -33,6 +33,6 @@ def sanitize_file(input_file_path: str, output_file_path: str):
 
 
 if __name__ == '__main__':
-    input_file = "data.txt"
-    output_file = "sanitized_data.txt"
+    input_file = "data/data.txt"
+    output_file = "data/sanitized_data.txt"
     sanitize_file(input_file, output_file)
