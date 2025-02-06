@@ -9,9 +9,9 @@ import numpy as np
 
 # Feed configuration
 np.set_printoptions(formatter={'all':lambda x: str(x)})
-feed_path = '/home/ken/projects/windturbine/software/rpm/windmill_10fps.gif'
-crop_points = [[75,335],[50,310]]
-crosshair_size = [20,15]
+feed_path = '/home/ken/projects/windturbine/software/rpm/windturbine2.gif'
+crop_points = [[60,340],[40,320]]
+crosshair_size = [30,30]
 frame_rate = 10
 
 if ((crop_points[0][1] - crop_points[0][0]) == (crop_points[1][1] - crop_points[1][0])):
