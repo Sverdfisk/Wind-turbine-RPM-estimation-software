@@ -33,10 +33,8 @@ while feed.isActive:
     if time_elapsed > 1./frame_rate:
         prev = time.time()
 
-        # Do image stuff
-        # crop_points = AI.do_something_that_fixes_my_problem(model=theGoodOne)
         data, image = feed.get_optical_flow_vectors()
-        if (data is None) or (image is None):
+        if (data is None) or (image is None): # If this happens, the video/gif is complete or the feed is interrupted
             break
 
         flow_image = feed.draw_optical_flow(image, data[1], data[0])
@@ -44,18 +42,19 @@ while feed.isActive:
         # The data indices have pixel positions, the total movement in one frame is new_pos - old_pos
         motion_vectors = data[1]-data[0]
 
-        rpm = crpm.get_rpm(motion_vectors, radius, frame_rate)
-        rpms.append(rpm)
+        rpm = crpm.get_rpm(motion_vectors, radius, frame_rate, mag_scale_factor=1.5)
 
-
-        error = utils.calculate_error_percentage(rpm, real_rpm)
-        errors.append(error)
+        #Ensure that dead frames do not get counted 
+        if rpm is not None:
+            rpms.append(rpm)
+            error = utils.calculate_error_percentage(rpm, real_rpm)
+            errors.append(error)
 
         cv.imshow('Image feed', flow_image)
         k = cv.waitKey(30) & 0xff
         if k == 27:
             break
 
-crpm.print_statistics(rpms, errors)
+utils.print_statistics(rpms, errors)
 
 cv.destroyAllWindows()
