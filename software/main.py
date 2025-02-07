@@ -12,11 +12,11 @@ np.set_printoptions(formatter={'all':lambda x: str(x)})
 # Look at rpm/opticalflow.py and rpm/calculate_rpm.py for details
 
 # Feed configuration
-feed_path = '/home/ken/projects/windturbine/software/rpm/assets/windturbine2.gif'
-crop_points = [[0,200],[0,200]]
+feed_path = '/home/ken/projects/windturbine/software/rpm/assets/windturbine.gif'
+crop_points = [[70,340],[40,310]]
 crosshair_size = [25,25]
 frame_rate = 10
-real_rpm = None
+real_rpm = 13
 radius = (crop_points[0][1] - crop_points[0][0]) / 2
 feed = flow.opticalflow(feed_path, 
                         crop_points = crop_points, 
@@ -37,12 +37,9 @@ while feed.isActive:
         if (data is None) or (image is None): # If this happens, the video/gif is complete or the feed is interrupted
             break
 
-        flow_image = feed.draw_optical_flow(image, data[1], data[0])
-
         # The data indices have pixel positions, the total movement in one frame is new_pos - old_pos
         motion_vectors = data[1]-data[0]
-
-        rpm = crpm.get_rpm(motion_vectors, radius, frame_rate, mag_scale_factor=1.5)
+        rpm = crpm.get_rpm(motion_vectors, radius, frame_rate)
 
         #Ensure that dead frames do not get counted 
         if rpm is not None:
@@ -50,11 +47,11 @@ while feed.isActive:
             error = utils.calculate_error_percentage(rpm, real_rpm)
             errors.append(error)
 
+        flow_image = feed.draw_optical_flow(image, data[1], data[0])
         cv.imshow('Image feed', flow_image)
         k = cv.waitKey(30) & 0xff
         if k == 27:
             break
 
-utils.print_statistics(rpms, errors)
-
+utils.print_statistics(rpms, errors, real_rpm=real_rpm)
 cv.destroyAllWindows()

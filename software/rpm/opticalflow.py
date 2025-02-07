@@ -89,7 +89,7 @@ class opticalflow():
                           self.crop_points[1][0]:self.crop_points[1][1]]
             
         return frame if ret else np.zeros_like(frame)
-    
+
     # The model uses the feature_mask parameter to ignore a section in the middle of the image.
     # The model is assumes a dead zone is desired with the wind turbine hub in the centre of the frame.
     def draw_optical_flow(self, image: np.ndarray, old_points: list, new_points: list, overwrite = False) -> np.ndarray:
