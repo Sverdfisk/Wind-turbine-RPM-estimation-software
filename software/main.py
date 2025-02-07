@@ -37,8 +37,8 @@ while(1):
         # The data indices have pixel positions, the total movement in one frame is new_pos - old_pos
         motion_vector = data[1]-data[0]
 
-        rpm = crpm.get_rpm(motion_vector, radius, frame_rate)
-        print(rpm)
+        out = crpm.get_rpm(motion_vector, radius, frame_rate, real_rpm=12)
+        print(out)
         cv.imshow('Camera feed', flow_image)
         k = cv.waitKey(30) & 0xff
         if k == 27:
