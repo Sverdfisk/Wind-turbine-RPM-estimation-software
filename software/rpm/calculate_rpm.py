@@ -1,21 +1,18 @@
 import math
 import numpy as np
 
-data = [[[7.450859,0.44232082],[-3.8172607,6.1015625],[-3.0885124,-6.6338806],[0.19400597,-7.5122147]],[[-4.8810425,5.2645874],[7.2718277,1.3465347],[-2.0194397,-7.065094],[-0.9060974,-5.351494]],[[6.711853,2.8556356],[-0.70342445,-7.4159393],[-5.6898804,4.254364]],[[-6.441559,3.1145477],[6.1576385,3.9150696],[0.60393906,-7.3932114],[3.6163483,3.7772293]],[[5.3229523,4.711891],[1.6225662,-7.4874344],[-6.9759293,1.7612457]],[[-0.07026672,12.259964]],[[4.281479,5.9152603],[3.0015411,-6.614975]],[[3.172577,6.648472],[4.256384,-5.8117332]],[[2.035141,7.1310577],[-6.983116,-1.7304382],[5.1409035,-5.1655045],[0.86691284,6.7808228]],[[-0.2508011,-8.485802]],[[0.8172302,7.3179703],[-6.594471,-2.9532928],[5.9203796,-4.162012]],[[-0.38801575,7.305069],[6.667946,-2.9968739],[-5.8694344,-4.106674]],[[7.098343,-2.0673046],[-5.138218,-5.0123596],[-1.6308289,7.2590027],[4.8019714,2.0057068],[-1.784256,6.6176147]],[[7.4340744,-0.6477375],[-2.9138947,6.7183228],[-4.2029495,-5.747574],[-3.1499481,-5.5782013],[-0.92276764,-4.7536545],[-1.6804352,5.102043]],[[-3.8730621,6.1553955],[7.2823105,0.5044575],[-3.1530724,-6.44252],[-3.1084442,4.3119965],[-0.26821518,-3.8228912],[-1.986084,4.0149765]],[[7.168022,1.5197868],[-2.025385,-7.196678],[-4.669174,5.2770386],[-3.6649704,0.17229462]],[[6.6055756,3.234871],[-0.64840317,-7.17733],[-5.6156006,4.663727],[-3.998764,0.39577484]],[[-6.590561,3.2610626],[6.125992,4.044098],[0.42393112,-7.306938],[-4.3345337,2.285263],[-3.444687,1.9733276],[3.6522598,1.9174347]],[[5.34227,4.9833374],[-7.118286,2.3099213],[1.6307764,-7.067009],[-5.2730026,0.34851074]],[[3.1154308,-6.4806824],[4.6009216,5.6518135]],[[3.0627441,6.6813736],[4.03718,-5.925148]],[[2.2473907,6.9576416],[4.9945335,-5.167042],[-7.1760025,-1.4624786]],[[-0.24279022,-9.119995]],[[0.72943115,7.333954],[5.794281,-4.254469],[-6.742378,-2.8191833]],[[-6.123974,-3.8854828],[6.4165764,-3.2693691],[-0.56578064,7.4012604],[-5.1707344,-4.368454]],[[-1.7842865,7.170166],[6.9305573,-2.1401348],[-5.2949867,-4.9531403],[-1.5122261,-5.306778]],[[7.2248306,-0.5804672],[-4.3597946,-5.7909393],[-3.2602692,6.6076355],[-1.7637901,-4.73909],[-2.4758186,-3.3192215]],[[-3.3307304,-6.4874268],[7.27861,0.4822464],[-4.2305756,6.0292816],[0.901741,-5.4611588]],[[-4.934677,5.3928986],[-2.1661224,-6.987648],[7.005333,1.6350441]],[[-0.8974762,-7.219322],[6.5157013,3.036335],[-6.0228424,4.202423],[5.3605347,2.7133636]],[[5.8826904,4.0831165],[-6.7398224,2.8646545],[0.5210619,-7.3758698],[3.294365,2.5695534],[-5.472313,1.7399597]],[[-7.146988,2.0621948],[5.181488,4.9801636],[1.6373014,-7.2347183],[0.03755951,8.3615265]],[[2.6765823,-6.8602524],[4.208069,5.7352295],[5.6217346,-0.052093506],[1.6079254,5.694462],[2.0154305,-4.693466]],[[4.0717716,-6.0594788],[3.1394806,6.4795914],[4.194168,-3.2649803]],[[4.995384,-5.3177795],[-7.2207413,-1.698349],[2.0328827,6.94503],[-0.5551834,-13.701454],[4.8206596,-4.8407097],[4.1825714,-0.9341049],[4.41016,-2.499279]],[[5.793499,-4.2169895],[-6.692692,-2.9663239],[0.8037567,7.18293],[7.732605,-0.5321884],[0.088027954,-6.694504],[3.7526932,-0.19480133],[6.4335938,0.5292587]],[[-6.096592,-4.097458],[-0.5430603,7.299698],[6.4670296,-3.2006493],[5.6160126,-2.8859348],[3.9757233,0.0944252],[-4.1733704,-2.9710388]],[[6.917343,-2.272005],[-1.5993805,7.140999],[-5.3125725,-5.015747],[2.6530151,-1.893673],[-3.7593765,-0.98296356]],[[7.3496323,-0.77501774],[-4.604492,-5.6180115],[-2.9891052,6.577301],[-1.1748505,-2.7314072]]]
-#data contains a sequence of motion vectors for each frame
-
-def calculate_frequency(velocity, radius, fps):
+def calculate_frequency(velocity: float, radius: float, fps: float) -> float:
     # velocity is in pixels per frame
     # units: (pixels / frame) * (frames / second) / pixels ) = 1/s = rad/s
     ang_vel = (velocity * fps) / radius 
     freq = ang_vel / (2 * math.pi) # unit: 1/s
     return freq
 
-def calculate_error_percentage(measured_value, actual_value):
+def calculate_error_percentage(measured_value: float, actual_value: float=13) -> float:
     error_percentage = abs(measured_value - actual_value) / actual_value * 100
     return round(error_percentage, 2)
 
-def filter_magnitudes(magnitudes):
+def filter_magnitudes(magnitudes: list) -> list:
 
     magnitudes = np.array(magnitudes)
     std_dev = np.std(magnitudes)
@@ -25,38 +22,48 @@ def filter_magnitudes(magnitudes):
     magnitudes = magnitudes[(magnitudes >= mean - 2 * std_dev) & (magnitudes <= mean + 2 * std_dev)]
     return magnitudes
 
-rpms = []
-errors = []
-fps = 10
-pixel_radius = 100
-real_rpm = 13
-mag_scaling_factor = math.e # WHY?????? WHY DOES THIS WORK???
+def get_rpm(data: list, radius: float, fps: float, mag_scale_factor = math.e) -> tuple:
 
-for block in data:
-
+    if data == []:
+        return 0
+    
+    rpms = []
+    errors = []
     magnitudes = []
-    for vector in block:
-        mag = round(math.sqrt(vector[0]**2 + vector[1]**2), 3)
+    # WAAAAY down the line: this is O(k*n²) which is not very fast
+    # 1. could unroll this loop into 2 and use some shenanigans to parallelize it
+    # 2. could also write a shader for our tiny RPi GPU as the reads and writes are independent
+    for vector in data:
+        mag = math.sqrt(vector[0]**2 + vector[1]**2)
         magnitudes.append(mag)
 
     filtered_magnitudes = filter_magnitudes(magnitudes)
     mag_avg = np.average(filtered_magnitudes)
 
-    vel = mag_avg*mag_scaling_factor
-    frequency = calculate_frequency(vel, pixel_radius, fps)
-    rpm = round(60 * frequency, 3)
+    vel = mag_avg*mag_scale_factor
+    frequency = calculate_frequency(vel, radius, fps)
+    rpm = 60 * frequency
 
     error = calculate_error_percentage(rpm, real_rpm)
     errors.append(error)
     rpms.append(rpm)
 
+    return (rpms, errors)
 
-avg_rpm = round(np.average(rpms), 2)
-avg_error = round(np.average(errors), 2)
-avg_error_from_real = calculate_error_percentage(avg_rpm, real_rpm)
+if __name__ == '__main__':
 
-for index, element in enumerate(rpms):
-    print('RPM:', rpms[index], f'Error: {errors[index]}%')
-print(f'Average rpm: {avg_rpm}')
-print(f'Average RPM error percentage from real RPM: {avg_error_from_real}%')
-print(f'Average of all error percentages: {avg_error}%')
+    rpms = []
+    errors = []
+    fps = 10
+    pixel_radius = 100
+    real_rpm = 13
+
+    avg_rpm = round(np.average(rpms), 2)
+    avg_error = round(np.average(errors), 2)
+    avg_error_from_real = calculate_error_percentage(avg_rpm, real_rpm)
+
+    for index, element in enumerate(rpms):
+        print('RPM:', rpms[index], f'Error: {errors[index]}%')
+    print(f'Average rpm: {avg_rpm}')
+    print(f'Average RPM error percentage from real RPM: {avg_error_from_real}%')
+    print(f'Average of all error percentages: {avg_error}%')
