@@ -2,10 +2,12 @@ import numpy as np
 import cv2 as cv
 
 class opticalflow():
-    def __init__(self, video_feed_path, crop_points = None, crosshair_size = [15,15]):
+    def __init__(self, video_feed_path, crop_points = None, crosshair_size = [15,15], fps=60, threshold = 10):
 
         #Video feed settings
         self.feed = cv.VideoCapture(video_feed_path)
+        self.fps = fps
+        self.feed.set(cv.CAP_PROP_FPS, self.fps)
         self.crop_points = crop_points
         self.old_frame = self.get_frame()
         self.set_mask_size()
@@ -16,9 +18,16 @@ class opticalflow():
         self.set_crosshair_size(crosshair_size)
         self.feature_mask = self.generate_feature_mask_matrix(self.old_frame)
 
+        # Sets tracking point threshold. A reasonable range is 0 to about 60  (10 is strict).
+        # lower threshold -> better confidence is needed to set a correlation as "successful".
+        # higher threshold -> More options for pixels that could be the one we track. Noisy, but more data.
+        self.threshold = threshold
+
         #Color for drawing purposes
         self.color = np.random.randint(0, 255, (100, 3))
-        self.threshold = 10
+
+        if ((crop_points[0][1] - crop_points[0][0]) == (crop_points[1][1] - crop_points[1][0])):
+            print("SQUARE CHECK OK")
 
     def set_crosshair_size(self, size):
         if size is not None:
@@ -32,7 +41,7 @@ class opticalflow():
     def set_shi_tomasi_params(self, maxCorners = 100, 
                               qualityLevel = 0.05, 
                               minDistance = 9, 
-                              blockSize = 3):
+                              blockSize = 3) -> dict:
         
         params = dict(maxCorners = maxCorners, 
                       qualityLevel = qualityLevel, 
@@ -42,14 +51,14 @@ class opticalflow():
 
     def set_lucas_kanade_params(self, winSize = (15, 15), 
                                 maxLevel = 2, 
-                                criteria = (cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03)):
+                                criteria = (cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03)) -> dict:
 
         params = dict(winSize = winSize, 
                       maxLevel = maxLevel, 
                       criteria = criteria)
         return params
 
-    def translate_coords_to_centre(self, image_height, image_width, sizex = 0, sizey = 0):
+    def translate_coords_to_centre(self, image_height: int, image_width: int, sizex: int = 0, sizey: int = 0) -> list:
         centre = [image_height/2, image_width/2]
         x_left = int(centre[1]-sizex)
         x_right = int(centre[1]+sizex)
@@ -57,7 +66,7 @@ class opticalflow():
         y_bottom = int(centre[0]+sizey)
         return [x_left, x_right, y_top, y_bottom]
 
-    def generate_feature_mask_matrix(self, image):
+    def generate_feature_mask_matrix(self, image: np.ndarray) -> np.ndarray:
         size = [self.crosshair_size_x, self.crosshair_size_y]
         height, width, channels = image.shape
         mask = np.full((height, width), 255, dtype=np.uint8)
@@ -66,20 +75,18 @@ class opticalflow():
         mask[y_top:y_bottom, x_left:x_right] = 0
         return mask
 
-    def get_frame(self):
+    def get_frame(self) -> np.ndarray:
         ret, frame = self.feed.read()
 
-        if self.crop_points is not None:
+        if (self.crop_points is not None) and ret:
             frame = frame[self.crop_points[0][0]:self.crop_points[0][1], 
                           self.crop_points[1][0]:self.crop_points[1][1]]
             
         return frame if ret else np.zeros_like(frame)
     
-    # The model uses the mask parameter to ignore the middle.
-    # The model is assumes a dead zone is desired with the 
-    # wind turbine hub in the centre of the frame.
-
-    def draw_optical_flow(self, image, old_points, new_points, overwrite = False):
+    # The model uses the feature_mask parameter to ignore a section in the middle of the image.
+    # The model is assumes a dead zone is desired with the wind turbine hub in the centre of the frame.
+    def draw_optical_flow(self, image: np.ndarray, old_points: list, new_points: list, overwrite = False) -> np.ndarray:
         if overwrite:
             self.mask = np.zeros_like(image)
         
@@ -99,7 +106,7 @@ class opticalflow():
 
         return (cv.add(self.mask, image))
 
-    def get_optical_flow_vectors(self):
+    def get_optical_flow_vectors(self) -> tuple:
 
         old_frame_gray = cv.cvtColor(self.old_frame, cv.COLOR_BGR2GRAY)
         new_frame = self.get_frame()
@@ -117,11 +124,10 @@ class opticalflow():
 
         #Select good tracking points based on successful tracking
         if p1 is not None:
-            good_new = p1[(st == 1) & (err < self.threshold)]
-            good_old = p0[(st == 1) & (err < self.threshold)]
+            good_new = p1[(st == 1) & (abs(err) < self.threshold)]
+            good_old = p0[(st == 1) & (abs(err) < self.threshold)]
 
         #Set the new frame to be considered "old" for next call
         self.old_frame = new_frame
 
-        return (good_old, good_new), new_frame
-
+        return (good_new, good_old), new_frame
