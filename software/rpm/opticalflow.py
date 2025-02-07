@@ -18,6 +18,12 @@ class opticalflow():
         self.set_crosshair_size(crosshair_size)
         self.feature_mask = self.generate_feature_mask_matrix(self.old_frame)
 
+        #Control config
+        if ((crop_points[0][1] - crop_points[0][0]) == (crop_points[1][1] - crop_points[1][0])):
+            print("SQUARE CHECK OK")
+        
+        self.isActive = True
+
         # Sets tracking point threshold. A reasonable range is 0 to about 60  (10 is strict).
         # lower threshold -> better confidence is needed to set a correlation as "successful".
         # higher threshold -> More options for pixels that could be the one we track. Noisy, but more data.
@@ -26,8 +32,6 @@ class opticalflow():
         #Color for drawing purposes
         self.color = np.random.randint(0, 255, (100, 3))
 
-        if ((crop_points[0][1] - crop_points[0][0]) == (crop_points[1][1] - crop_points[1][0])):
-            print("SQUARE CHECK OK")
 
     def set_crosshair_size(self, size):
         if size is not None:
@@ -78,6 +82,8 @@ class opticalflow():
     def get_frame(self) -> np.ndarray:
         ret, frame = self.feed.read()
 
+        self.isActive = ret
+
         if (self.crop_points is not None) and ret:
             frame = frame[self.crop_points[0][0]:self.crop_points[0][1], 
                           self.crop_points[1][0]:self.crop_points[1][1]]
@@ -107,9 +113,12 @@ class opticalflow():
         return (cv.add(self.mask, image))
 
     def get_optical_flow_vectors(self) -> tuple:
-
         old_frame_gray = cv.cvtColor(self.old_frame, cv.COLOR_BGR2GRAY)
+
         new_frame = self.get_frame()
+        if not self.isActive:
+            return (None, None)
+
         new_frame_gray = cv.cvtColor(new_frame, cv.COLOR_BGR2GRAY)
         
         # find features in our old grayscale frame. feature mask is dynamic but manual
