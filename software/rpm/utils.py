@@ -3,12 +3,10 @@ import numpy as np
 def calculate_error_percentage(measured_value: float, actual_value: float) -> float:
     if actual_value is None:
         return None
-    
     error_percentage = abs(measured_value - actual_value) / actual_value * 100
     return error_percentage
 
 def print_statistics(rpms: list, errors: list, real_rpm: float = None, rounding_factor: int = 2, verbose: bool = False) -> None:
-
     avg_rpm = round(np.average(rpms), rounding_factor)
 
     if real_rpm is not None:

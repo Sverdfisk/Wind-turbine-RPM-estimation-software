@@ -12,46 +12,52 @@ np.set_printoptions(formatter={'all':lambda x: str(x)})
 # Look at rpm/opticalflow.py and rpm/calculate_rpm.py for details
 
 # Feed configuration
-feed_path = '/home/ken/projects/windturbine/software/rpm/assets/windturbine.gif'
-crop_points = [[70,340],[40,310]]
-crosshair_size = [25,25]
-frame_rate = 10
+feed_path = '/home/ken/projects/windturbine/software/rpm/assets/windturbine_9fps.gif'
+crop_points = [[70,340],[50,320]]
+crosshair_size = [95,95]
+frame_rate = 9
 real_rpm = 13
 radius = (crop_points[0][1] - crop_points[0][0]) / 2
-feed = flow.opticalflow(feed_path, 
+
+run_number = 1
+for i in range(0,3):
+
+    rpms = []
+    errors = []
+    prev = 0
+    #restart the feed for every run
+    feed = flow.opticalflow(feed_path, 
                         crop_points = crop_points, 
                         crosshair_size = crosshair_size, 
                         fps=frame_rate)
+    
+    while feed.isActive:
 
-rpms = []
-errors = []
-prev = 0
+        time_elapsed = time.time() - prev
+        if time_elapsed > 1./frame_rate:
+            prev = time.time()
 
-while feed.isActive:
+            data, image = feed.get_optical_flow_vectors()
+            if (data is None) or (image is None): # If this happens, the video/gif is complete or the feed is interrupted
+                break
 
-    time_elapsed = time.time() - prev
-    if time_elapsed > 1./frame_rate:
-        prev = time.time()
+            # The data indices have pixel positions, the total movement in one frame is new_pos - old_pos
+            motion_vectors = data[1]-data[0]
+            rpm = crpm.get_rpm(motion_vectors, radius, frame_rate, mag_scale_factor=2)
 
-        data, image = feed.get_optical_flow_vectors()
-        if (data is None) or (image is None): # If this happens, the video/gif is complete or the feed is interrupted
-            break
+            #Ensure that dead frames do not get counted 
+            if rpm is not None:
+                rpms.append(rpm)
+                error = utils.calculate_error_percentage(rpm, real_rpm)
+                errors.append(error)
 
-        # The data indices have pixel positions, the total movement in one frame is new_pos - old_pos
-        motion_vectors = data[1]-data[0]
-        rpm = crpm.get_rpm(motion_vectors, radius, frame_rate)
-
-        #Ensure that dead frames do not get counted 
-        if rpm is not None:
-            rpms.append(rpm)
-            error = utils.calculate_error_percentage(rpm, real_rpm)
-            errors.append(error)
-
-        flow_image = feed.draw_optical_flow(image, data[1], data[0])
-        cv.imshow('Image feed', flow_image)
-        k = cv.waitKey(30) & 0xff
-        if k == 27:
-            break
-
-utils.print_statistics(rpms, errors, real_rpm=real_rpm)
+            flow_image = feed.draw_optical_flow(image, data[1], data[0])
+            cv.imshow('Image feed', flow_image)
+            k = cv.waitKey(30) & 0xff
+            if k == 27:
+                break
+    #utils.print_statistics(rpms, errors, real_rpm=real_rpm)
+    with open("rpm/out/run_results.csv", "a") as myfile:
+        myfile.write(f"{run_number}, {np.average(rpms)}, {utils.calculate_error_percentage(np.average(rpms), real_rpm)}\n")
+    run_number += 1
 cv.destroyAllWindows()

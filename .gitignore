@@ -170,6 +170,8 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+# Data files/run logs and other assets
 .png
 .jpg
 .jpeg
+.csv
