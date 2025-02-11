@@ -24,7 +24,6 @@ for i in range(0,10):
 
     rpms = []
     errors = []
-    prev = 0
     #restart the feed for every run
     feed = flow.opticalflow(feed_path, 
                         crop_points = crop_points, 
@@ -32,30 +31,25 @@ for i in range(0,10):
                         fps=frame_rate)
     
     while feed.isActive:
+        data, image = feed.get_optical_flow_vectors()
+        if (data is None) or (image is None): # If this happens, the video/gif is complete or the feed is interrupted
+            break
 
-        time_elapsed = time.time() - prev
-        if time_elapsed > 1./frame_rate/2:
-            prev = time.time()
+        # The data indices have pixel positions, the total movement in one frame is new_pos - old_pos
+        motion_vectors = data[1]-data[0]
+        rpm = crpm.get_rpm(motion_vectors, radius, frame_rate)
 
-            data, image = feed.get_optical_flow_vectors()
-            if (data is None) or (image is None): # If this happens, the video/gif is complete or the feed is interrupted
-                break
+        #Ensure that dead frames do not get counted 
+        if rpm is not None:
+            rpms.append(rpm)
+            error = utils.calculate_error_percentage(rpm, real_rpm)
+            errors.append(error)
 
-            # The data indices have pixel positions, the total movement in one frame is new_pos - old_pos
-            motion_vectors = data[1]-data[0]
-            rpm = crpm.get_rpm(motion_vectors, radius, frame_rate, mag_scale_factor=1)
-
-            #Ensure that dead frames do not get counted 
-            if rpm is not None:
-                rpms.append(rpm)
-                error = utils.calculate_error_percentage(rpm, real_rpm)
-                errors.append(error)
-
-            flow_image = feed.draw_optical_flow(image, data[1], data[0])
-            cv.imshow('Image feed', flow_image)
-            k = cv.waitKey(30) & 0xff
-            if k == 27:
-                break
+        flow_image = feed.draw_optical_flow(image, data[1], data[0])
+        cv.imshow('Image feed', flow_image)
+        k = cv.waitKey(30) & 0xff
+        if k == 27:
+            break
     #utils.print_statistics(rpms, errors, real_rpm=real_rpm)
     with open("rpm/out/run_results.csv", "a") as myfile:
         myfile.write(f"{run_number}, {np.average(rpms)}, {utils.calculate_error_percentage(np.average(rpms), real_rpm)}\n")
