@@ -80,7 +80,6 @@ class opticalflow():
 
     def get_frame(self) -> np.ndarray:
         ret, frame = self.feed.read()
-
         self.isActive = ret
 
         if (self.crop_points is not None) and ret:
@@ -113,7 +112,6 @@ class opticalflow():
 
     def get_optical_flow_vectors(self) -> tuple:
         old_frame_gray = cv.cvtColor(self.old_frame, cv.COLOR_BGR2GRAY)
-
         new_frame = self.get_frame()
         if not self.isActive:
             return (None, None)
@@ -122,13 +120,8 @@ class opticalflow():
         
         # find features in our old grayscale frame. feature mask is dynamic but manual
         p0 = cv.goodFeaturesToTrack(old_frame_gray, mask = self.feature_mask, **self.st_params)
+
         p1, st, err = cv.calcOpticalFlowPyrLK(old_frame_gray, new_frame_gray, p0, None, **self.lk_params)
-
-
-        #TODO: implement some cool filters here later to 
-        # get better tracking data
-        # self.threshold = 5 is SUPER strict
-        #self.threshold = np.percentile(err, 90)
 
         #Select good tracking points based on successful tracking
         if p1 is not None:

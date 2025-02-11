@@ -171,7 +171,11 @@ cython_debug/
 .pypirc
 
 # Data files/run logs and other assets
-*.png
-*.jpg
-*.jpeg
-*.csv
+**/*.png
+**/*.gif
+**/*.jpg
+**/*.jpeg
+**/*.csv
+
+software/assets/*
+software/runs/*

@@ -2,25 +2,32 @@ import cv2 as cv
 from rpm import opticalflow as flow
 from rpm import calculate_rpm as crpm
 from rpm import utils
-import time
 import numpy as np
+import argparse
 np.set_printoptions(formatter={'all':lambda x: str(x)})
 
 
+parser = argparse.ArgumentParser()
+
+parser.add_argument('-f', '--fps', type=float, required=True, help="input feed FPS")
+parser.add_argument('-r', '--real_rpm', type=float, required=False, help="real rpm of wind turbine in feed")
+args = parser.parse_args()
 # --------Keep this file short!--------
 # Main runner file, only used to setup and run the actual scripts.
 # Look at rpm/opticalflow.py and rpm/calculate_rpm.py for details
 
 # Feed configuration
-feed_path = '/home/ken/projects/windturbine/software/rpm/assets/windturbine.gif'
-crop_points = [[70,335],[50,315]]
-crosshair_size = [90,90]
-frame_rate = 50
-real_rpm = 13
+feed_path = '/home/ken/projects/windturbine/software/assets/windturbine3_f30_r24.gif'
+fps = args.fps
+real_rpm = args.real_rpm
+
+# Feed configuration
+crop_points = [[0,115],[42,157]]
+crosshair_size = [40,40]
 radius = (crop_points[0][1] - crop_points[0][0]) / 2
 
 run_number = 1
-for i in range(0,10):
+for i in range(0,20):
 
     rpms = []
     errors = []
@@ -28,7 +35,7 @@ for i in range(0,10):
     feed = flow.opticalflow(feed_path, 
                         crop_points = crop_points, 
                         crosshair_size = crosshair_size, 
-                        fps=frame_rate)
+                        fps=fps)
     
     while feed.isActive:
         data, image = feed.get_optical_flow_vectors()
@@ -37,7 +44,7 @@ for i in range(0,10):
 
         # The data indices have pixel positions, the total movement in one frame is new_pos - old_pos
         motion_vectors = data[1]-data[0]
-        rpm = crpm.get_rpm(motion_vectors, radius, frame_rate)
+        rpm = crpm.get_rpm(motion_vectors, radius, fps)
 
         #Ensure that dead frames do not get counted 
         if rpm is not None:
@@ -51,7 +58,8 @@ for i in range(0,10):
         if k == 27:
             break
     #utils.print_statistics(rpms, errors, real_rpm=real_rpm)
-    with open("rpm/out/run_results.csv", "a") as myfile:
+    with open("runs/run_results3.csv", "a") as myfile:
         myfile.write(f"{run_number}, {np.average(rpms)}, {utils.calculate_error_percentage(np.average(rpms), real_rpm)}\n")
     run_number += 1
+
 cv.destroyAllWindows()
