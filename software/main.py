@@ -3,6 +3,7 @@ from rpm import opticalflow as flow
 from rpm import calculate_rpm as crpm
 from rpm import utils
 import numpy as np
+import math
 import argparse
 np.set_printoptions(formatter={'all':lambda x: str(x)})
 
@@ -17,18 +18,20 @@ args = parser.parse_args()
 # Look at rpm/opticalflow.py and rpm/calculate_rpm.py for details
 
 # Feed configuration
-feed_path = '/home/ken/projects/windturbine/software/assets/windturbine3_f30_r24.gif'
+feed_path = '/home/ken/projects/windturbine/software/assets/windturbine4_angle_f12.5_r11.gif'
 fps = args.fps
 real_rpm = args.real_rpm
 
 # Feed configuration
-crop_points = [[0,115],[42,157]]
-crosshair_size = [40,40]
-radius = (crop_points[0][1] - crop_points[0][0]) / 2
+crop_points = [[0, 195],[335,430]]
+crosshair_size = [25,20]
+radius_y = (crop_points[0][1] - crop_points[0][0])
+radius_x = (crop_points[1][1] - crop_points[1][0])
+radius = math.sqrt(radius_x * radius_y)
 
 run_number = 1
-for i in range(0,20):
-
+for i in range(0,10):
+    print(f'STARTING RUN {run_number}')
     rpms = []
     errors = []
     #restart the feed for every run
@@ -58,7 +61,7 @@ for i in range(0,20):
         if k == 27:
             break
     #utils.print_statistics(rpms, errors, real_rpm=real_rpm)
-    with open("runs/run_results3.csv", "a") as myfile:
+    with open("runs/run_results4.csv", "a") as myfile:
         myfile.write(f"{run_number}, {np.average(rpms)}, {utils.calculate_error_percentage(np.average(rpms), real_rpm)}\n")
     run_number += 1
 

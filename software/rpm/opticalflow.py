@@ -20,7 +20,9 @@ class opticalflow():
 
         #Control config
         if ((crop_points[0][1] - crop_points[0][0]) == (crop_points[1][1] - crop_points[1][0])):
-            print("SQUARE CHECK OK")
+            print('SHAPE: SQUARE')
+        else:
+            print('SHAPE: ELLIPSE')
         self.isActive = True
 
         # Sets tracking point threshold. A reasonable range is 0 to about 60  (10 is strict).
