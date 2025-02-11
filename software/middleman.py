@@ -22,12 +22,12 @@ fps = args.fps
 real_rpm = args.real_rpm
 
 # Feed configuration
-crop_points = [[0,115],[42,157]]
-crosshair_size = [40,40]
+crop_points = [[0,100],[0,10]]
+crosshair_size = [10,10]
 radius = (crop_points[0][1] - crop_points[0][0]) / 2
 
 run_number = 1
-for i in range(0,20):
+for i in range(0,10):
 
     rpms = []
     errors = []
@@ -58,8 +58,8 @@ for i in range(0,20):
         if k == 27:
             break
     #utils.print_statistics(rpms, errors, real_rpm=real_rpm)
-    with open("runs/run_results3.csv", "a") as myfile:
-        myfile.write(f"{run_number}, {np.average(rpms)}, {utils.calculate_error_percentage(np.average(rpms), real_rpm)}\n")
+    #with open("runs/run_results3.csv", "a") as myfile:
+    #    myfile.write(f"{run_number}, {np.average(rpms)}, {utils.calculate_error_percentage(np.average(rpms), real_rpm)}\n")
     run_number += 1
 
 cv.destroyAllWindows()
