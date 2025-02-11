@@ -12,9 +12,9 @@ np.set_printoptions(formatter={'all':lambda x: str(x)})
 # Look at rpm/opticalflow.py and rpm/calculate_rpm.py for details
 
 # Feed configuration
-feed_path = '/home/ken/projects/windturbine/software/rpm/assets/windturbine2_xfps.gif'
-crop_points = [[10,190],[10,190]]
-crosshair_size = [40,40]
+feed_path = '/home/ken/projects/windturbine/software/rpm/assets/windturbine3.gif'
+crop_points = [[0,120],[40,160]]
+crosshair_size = [30,30]
 frame_rate = 10
 real_rpm = 24
 radius = (crop_points[0][1] - crop_points[0][0]) / 2
@@ -57,7 +57,7 @@ for i in range(0,20):
             if k == 27:
                 break
     #utils.print_statistics(rpms, errors, real_rpm=real_rpm)
-    with open("rpm/out/run_results_gif2.csv", "a") as myfile:
-        myfile.write(f"{run_number}, {np.average(rpms)}, {utils.calculate_error_percentage(np.average(rpms), real_rpm)}\n")
+    #with open("rpm/out/run_results_gif2.csv", "a") as myfile:
+    #    myfile.write(f"{run_number}, {np.average(rpms)}, {utils.calculate_error_percentage(np.average(rpms), real_rpm)}\n")
     run_number += 1
 cv.destroyAllWindows()
