@@ -20,7 +20,7 @@ def filter_magnitudes(magnitudes: list) -> list:
     magnitudes = magnitudes[(magnitudes >= mean - 2 * std_dev) & (magnitudes <= mean + 2 * std_dev)]
     return magnitudes
 
-def get_rpm(data: list, radius: float, fps: float, mag_scale_factor: float = math.e, real_rpm: float = None) -> tuple:
+def get_rpm(data: list, radius: float, fps: float, real_rpm: float = None) -> tuple:
     if data.size == 0:
         return None
     
@@ -32,7 +32,7 @@ def get_rpm(data: list, radius: float, fps: float, mag_scale_factor: float = mat
     filtered_magnitudes = filter_magnitudes(magnitudes)
     mag_avg = np.average(filtered_magnitudes)
 
-    vel = mag_avg*mag_scale_factor
+    vel = mag_avg
     frequency = calculate_frequency(vel, radius, fps)
     rpm = 60 * frequency
 
