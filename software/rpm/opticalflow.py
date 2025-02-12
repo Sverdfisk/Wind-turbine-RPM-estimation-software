@@ -9,7 +9,14 @@ class opticalflow():
         self.fps = fps
         self.feed.set(cv.CAP_PROP_FPS, self.fps)
         self.crop_points = crop_points
-        self.old_frame = self.get_frame()
+
+        # Set image frame parameters
+        if ((crop_points[0][1] - crop_points[0][0]) == (crop_points[1][1] - crop_points[1][0])):
+            self.shape = 'SQUARE'
+        else:
+            self.shape = 'ELLIPSE'
+
+        self.old_frame = self.set_initial_frame()
         self.set_mask_size()
 
         #Algorithm config
@@ -19,20 +26,26 @@ class opticalflow():
         self.feature_mask = self.generate_feature_mask_matrix(self.old_frame)
 
         #Control config
-        if ((crop_points[0][1] - crop_points[0][0]) == (crop_points[1][1] - crop_points[1][0])):
-            print('SHAPE: SQUARE')
-        else:
-            print('SHAPE: ELLIPSE')
         self.isActive = True
 
         # Sets tracking point threshold. A reasonable range is 0 to about 60  (10 is strict).
         # lower threshold -> better confidence is needed to set a correlation as "successful".
         # higher threshold -> More options for pixels that could be the one we track. Noisy, but more data.
-        self.threshold = threshold
+        self.threshold = threshold 
 
         #Color for drawing purposes
         self.color = np.random.randint(0, 255, (100, 3))
 
+    def set_perspective_parameters(self):
+        self.diff = (self.h-self.w) if (self.h > self.w) else (self.w-self.h)
+
+        self.input_coords = np.float32( [[0, 0], [self.w - 1, 0], [self.w - 1, self.h - 1],[0, self.h - 1]] )
+        self.translation_output_coords = np.float32( [[0, 0], [self.w + self.diff, 0], [self.w + self.diff, self.h], [0, self.h]])
+
+    def perspective_correct(self, frame):
+        translation_matrix = cv.getPerspectiveTransform(self.input_coords, self.translation_output_coords)
+        warped = cv.warpPerspective(frame, translation_matrix, (self.h, self.h))
+        return warped
 
     def set_crosshair_size(self, size):
         if size is not None:
@@ -80,6 +93,20 @@ class opticalflow():
         mask[y_top:y_bottom, x_left:x_right] = 0
         return mask
 
+    def set_initial_frame(self) -> np.ndarray:
+        ret, frame = self.feed.read()
+        self.h, self.w, self.ch = frame.shape
+        self.set_perspective_parameters()
+        self.isActive = ret
+
+        if (self.crop_points is not None) and ret:
+            frame = frame[self.crop_points[0][0]:self.crop_points[0][1], 
+                          self.crop_points[1][0]:self.crop_points[1][1]]
+        
+        if self.shape == 'ELLIPSE':
+            frame = self.perspective_correct(frame)
+        return frame
+
     def get_frame(self) -> np.ndarray:
         ret, frame = self.feed.read()
         self.isActive = ret
@@ -87,11 +114,12 @@ class opticalflow():
         if (self.crop_points is not None) and ret:
             frame = frame[self.crop_points[0][0]:self.crop_points[0][1], 
                           self.crop_points[1][0]:self.crop_points[1][1]]
-            
+        
+        if self.shape == 'ELLIPSE':
+            frame = self.perspective_correct(frame)
+
         return frame if ret else np.zeros_like(frame)
 
-    # The model uses the feature_mask parameter to ignore a section in the middle of the image.
-    # The model is assumes a dead zone is desired with the wind turbine hub in the centre of the frame.
     def draw_optical_flow(self, image: np.ndarray, old_points: list, new_points: list, overwrite = False) -> np.ndarray:
         if overwrite:
             self.mask = np.zeros_like(image)

@@ -27,7 +27,8 @@ crop_points = [[0, 195],[335,430]]
 crosshair_size = [25,20]
 radius_y = (crop_points[0][1] - crop_points[0][0])
 radius_x = (crop_points[1][1] - crop_points[1][0])
-radius = math.sqrt(radius_x * radius_y)
+
+radius = radius_y if (radius_y > radius_x) else radius_x
 
 run_number = 1
 for i in range(0,10):
@@ -61,8 +62,8 @@ for i in range(0,10):
         if k == 27:
             break
     #utils.print_statistics(rpms, errors, real_rpm=real_rpm)
-    with open("runs/run_results4.csv", "a") as myfile:
-        myfile.write(f"{run_number}, {np.average(rpms)}, {utils.calculate_error_percentage(np.average(rpms), real_rpm)}\n")
+    #with open("runs/run_results4.csv", "a") as myfile:
+    #    myfile.write(f"{run_number}, {np.average(rpms)}, {utils.calculate_error_percentage(np.average(rpms), real_rpm)}\n")
     run_number += 1
 
 cv.destroyAllWindows()
