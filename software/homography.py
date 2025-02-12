@@ -15,8 +15,6 @@ pts_src = np.float32([
     [0,         height - 1]    # bottom-left
 ])
 
-# 3) Define where you want those corners to map in the *destination*
-#    The order of these points must match the order in pts_src.
 pts_dst = np.float32([
     [0, 0   ],   # top-left in the new image
     [width+diff, 0    ],   # top-right in the new image

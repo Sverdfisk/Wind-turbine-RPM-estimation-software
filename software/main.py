@@ -8,30 +8,33 @@ import argparse
 np.set_printoptions(formatter={'all':lambda x: str(x)})
 
 
-parser = argparse.ArgumentParser()
+#parser = argparse.ArgumentParser()
 
-parser.add_argument('-f', '--fps', type=float, required=True, help="input feed FPS")
-parser.add_argument('-r', '--real_rpm', type=float, required=False, help="real rpm of wind turbine in feed")
-args = parser.parse_args()
+#parser.add_argument('-f', '--fps', type=float, required=True, help="input feed FPS")
+#parser.add_argument('-r', '--real_rpm', type=float, required=False, help="real rpm of wind turbine in feed")
+#args = parser.parse_args()
 # --------Keep this file short!--------
 # Main runner file, only used to setup and run the actual scripts.
 # Look at rpm/opticalflow.py and rpm/calculate_rpm.py for details
 
 # Feed configuration
 feed_path = '/home/ken/projects/windturbine/software/assets/windturbine4_angle_f12.5_r11.gif'
-fps = args.fps
-real_rpm = args.real_rpm
+#fps = args.fps
+#real_rpm = args.real_rpm
+
+fps = 12.5
+real_rpm = 11
 
 # Feed configuration
 crop_points = [[0, 195],[335,430]]
-crosshair_size = [25,20]
+crosshair_size = [40,35]
 radius_y = (crop_points[0][1] - crop_points[0][0])
 radius_x = (crop_points[1][1] - crop_points[1][0])
 
 radius = radius_y if (radius_y > radius_x) else radius_x
 
 run_number = 1
-for i in range(0,10):
+for i in range(0,20):
     print(f'STARTING RUN {run_number}')
     rpms = []
     errors = []
@@ -39,7 +42,8 @@ for i in range(0,10):
     feed = flow.opticalflow(feed_path, 
                         crop_points = crop_points, 
                         crosshair_size = crosshair_size, 
-                        fps=fps)
+                        fps=fps,
+                        crosshair_offset_x=25)
     
     while feed.isActive:
         data, image = feed.get_optical_flow_vectors()
@@ -62,8 +66,8 @@ for i in range(0,10):
         if k == 27:
             break
     #utils.print_statistics(rpms, errors, real_rpm=real_rpm)
-    #with open("runs/run_results4.csv", "a") as myfile:
-    #    myfile.write(f"{run_number}, {np.average(rpms)}, {utils.calculate_error_percentage(np.average(rpms), real_rpm)}\n")
+    with open("runs/run_results4_perspective_correction.csv", "a") as myfile:
+        myfile.write(f"{run_number}, {np.average(rpms)}, {utils.calculate_error_percentage(np.average(rpms), real_rpm)}\n")
     run_number += 1
 
 cv.destroyAllWindows()

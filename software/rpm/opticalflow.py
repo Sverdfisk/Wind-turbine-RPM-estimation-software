@@ -2,7 +2,7 @@ import numpy as np
 import cv2 as cv
 
 class opticalflow():
-    def __init__(self, video_feed_path, crop_points = None, crosshair_size = [15,15], fps=60, threshold = 10):
+    def __init__(self, video_feed_path, crop_points = None, crosshair_size = [15,15], fps=60, threshold = 10, crosshair_offset_x = 0, crosshair_offset_y = 0):
 
         #Video feed settings
         self.feed = cv.VideoCapture(video_feed_path)
@@ -23,7 +23,7 @@ class opticalflow():
         self.st_params = self.set_shi_tomasi_params()
         self.lk_params = self.set_lucas_kanade_params()
         self.set_crosshair_size(crosshair_size)
-        self.feature_mask = self.generate_feature_mask_matrix(self.old_frame)
+        self.feature_mask = self.generate_feature_mask_matrix(self.old_frame, crosshair_offset_x, crosshair_offset_y)
 
         #Control config
         self.isActive = True
@@ -39,12 +39,21 @@ class opticalflow():
     def set_perspective_parameters(self):
         self.diff = (self.h-self.w) if (self.h > self.w) else (self.w-self.h)
 
-        self.input_coords = np.float32( [[0, 0], [self.w - 1, 0], [self.w - 1, self.h - 1],[0, self.h - 1]] )
-        self.translation_output_coords = np.float32( [[0, 0], [self.w + self.diff, 0], [self.w + self.diff, self.h], [0, self.h]])
+        self.input_coords = np.float32([[0, 0], #TL
+                                        [self.w - 1, 0], #TR
+                                        [self.w - 1, self.h - 1], #BR
+                                        [0, self.h - 1]] ) #BL
+
+
+        self.translation_output_coords = np.float32([[0, 0], 
+                                                     [self.w + self.diff, 0], 
+                                                     [self.w + self.diff, self.h], 
+                                                     [0, self.h]])
+
+        self.translation_matrix = cv.getPerspectiveTransform(self.input_coords, self.translation_output_coords)
 
     def perspective_correct(self, frame):
-        translation_matrix = cv.getPerspectiveTransform(self.input_coords, self.translation_output_coords)
-        warped = cv.warpPerspective(frame, translation_matrix, (self.h, self.h))
+        warped = cv.warpPerspective(frame, self.translation_matrix, (self.h, self.h))
         return warped
 
     def set_crosshair_size(self, size):
@@ -84,24 +93,24 @@ class opticalflow():
         y_bottom = int(centre[0]+sizey)
         return [x_left, x_right, y_top, y_bottom]
 
-    def generate_feature_mask_matrix(self, image: np.ndarray) -> np.ndarray:
+    def generate_feature_mask_matrix(self, image: np.ndarray, crosshair_offset_x, crosshair_offset_y) -> np.ndarray:
         size = [self.crosshair_size_x, self.crosshair_size_y]
         height, width, channels = image.shape
         mask = np.full((height, width), 255, dtype=np.uint8)
         x_left, x_right, y_top, y_bottom = self.translate_coords_to_centre(height, width, sizex = size[0], sizey = size[1])
-        self.maskpoints = [x_left, x_right, y_top, y_bottom]
-        mask[y_top:y_bottom, x_left:x_right] = 0
+        self.maskpoints = [(x_left + crosshair_offset_x), (x_right + crosshair_offset_x), (y_top + crosshair_offset_y), (y_bottom + crosshair_offset_y)]
+        mask[(y_top + crosshair_offset_y):(y_bottom + crosshair_offset_y), (x_left + crosshair_offset_x):(x_right + crosshair_offset_x)] = 0
         return mask
 
     def set_initial_frame(self) -> np.ndarray:
         ret, frame = self.feed.read()
-        self.h, self.w, self.ch = frame.shape
-        self.set_perspective_parameters()
-        self.isActive = ret
-
         if (self.crop_points is not None) and ret:
             frame = frame[self.crop_points[0][0]:self.crop_points[0][1], 
                           self.crop_points[1][0]:self.crop_points[1][1]]
+            
+        self.h, self.w, self.ch = frame.shape
+        self.set_perspective_parameters()
+        self.isActive = ret
         
         if self.shape == 'ELLIPSE':
             frame = self.perspective_correct(frame)
@@ -115,7 +124,7 @@ class opticalflow():
             frame = frame[self.crop_points[0][0]:self.crop_points[0][1], 
                           self.crop_points[1][0]:self.crop_points[1][1]]
         
-        if self.shape == 'ELLIPSE':
+        if self.shape == 'ELLIPSE' and ret:
             frame = self.perspective_correct(frame)
 
         return frame if ret else np.zeros_like(frame)
