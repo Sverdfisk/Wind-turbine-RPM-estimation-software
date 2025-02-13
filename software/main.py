@@ -6,15 +6,14 @@ import numpy as np
 import argparse
 np.set_printoptions(formatter={'all':lambda x: str(x)})
 
-
-parser = argparse.ArgumentParser()
-
-parser.add_argument('-f', '--fps', type=float, required=True, help="input feed FPS")
-parser.add_argument('-r', '--real_rpm', type=float, required=False, help="real rpm of wind turbine in feed")
-args = parser.parse_args()
 # --------Keep this file short!--------
 # Main runner file, only used to setup and run the actual scripts.
 # Look at rpm/opticalflow.py and rpm/calculate_rpm.py for details
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-f', '--fps', type=float, required=True, help="input feed FPS")
+parser.add_argument('-r', '--real_rpm', type=float, required=False, help="real rpm of wind turbine in feed")
+args = parser.parse_args()
 
 # Feed configuration
 feed_path = '/home/ken/projects/windturbine/software/assets/windturbine3_f30_r24.gif'

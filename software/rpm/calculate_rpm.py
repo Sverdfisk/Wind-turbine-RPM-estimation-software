@@ -30,11 +30,15 @@ def get_rpm(data: list, radius: float, fps: float, real_rpm: float = None) -> tu
         magnitudes.append(mag)
 
     filtered_magnitudes = filter_magnitudes(magnitudes)
+<<<<<<< Updated upstream
     mag_avg = np.average(filtered_magnitudes)
 
     vel = mag_avg
     frequency = calculate_frequency(vel, radius, fps)
     rpm = 60 * frequency
+=======
+    vel = np.average(filtered_magnitudes) / 0.463406
+>>>>>>> Stashed changes
 
     return rpm
 

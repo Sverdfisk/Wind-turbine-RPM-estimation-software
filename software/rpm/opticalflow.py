@@ -10,6 +10,14 @@ class opticalflow():
         self.feed.set(cv.CAP_PROP_FPS, self.fps)
         self.crop_points = crop_points
         self.old_frame = self.get_frame()
+
+        # Set image frame parameters
+        if ((crop_points[0][1] - crop_points[0][0]) == (crop_points[1][1] - crop_points[1][0])):
+            self.shape = 'SQUARE'
+        else:
+            self.shape = 'ELLIPSE'
+
+        self.old_frame = self.set_initial_frame()
         self.set_mask_size()
 
         #Algorithm config
