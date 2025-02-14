@@ -11,14 +11,9 @@ np.set_printoptions(formatter={'all':lambda x: str(x)})
 # Look at rpm/opticalflow.py and rpm/calculate_rpm.py for details
 
 parser = argparse.ArgumentParser()
-<<<<<<< HEAD
-parser.add_argument('-f', '--fps', type=float, required=True, help="input feed FPS")
-parser.add_argument('-r', '--real_rpm', type=float, required=False, help="real rpm of wind turbine in feed")
-=======
 parser.add_argument('-f', '--fps', type=float, required=True, help="Input feed FPS")
 parser.add_argument('-r', '--real_rpm', type=float, required=False, help="Real rpm of wind turbine in feed")
 parser.add_argument('-l', '--log', action='store_true', required=False, help="Enables logging of runs")
->>>>>>> ellipse_support
 args = parser.parse_args()
 
 # Feed configuration

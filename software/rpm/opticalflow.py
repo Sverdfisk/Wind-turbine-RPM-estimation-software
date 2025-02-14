@@ -11,10 +11,6 @@ class opticalflow():
         self.fps = fps
         self.feed.set(cv.CAP_PROP_FPS, self.fps)
         self.crop_points = crop_points
-<<<<<<< HEAD
-        self.old_frame = self.get_frame()
-=======
->>>>>>> ellipse_support
 
         # Set image frame parameters
         if ((crop_points[0][1] - crop_points[0][0]) == (crop_points[1][1] - crop_points[1][0])):

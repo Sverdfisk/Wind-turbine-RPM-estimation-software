@@ -30,19 +30,7 @@ def get_rpm(velocity_vectors: list, radius, fps: float) -> tuple:
         magnitudes.append(mag)
 
     filtered_magnitudes = filter_magnitudes(magnitudes)
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-    mag_avg = np.average(filtered_magnitudes)
-
-    vel = mag_avg
-    frequency = calculate_frequency(vel, radius, fps)
-    rpm = 60 * frequency
-=======
-    vel = np.average(filtered_magnitudes) / 0.463406
->>>>>>> Stashed changes
-=======
     vel = np.average(filtered_magnitudes)
->>>>>>> ellipse_support
 
     rpm = 60 * calculate_frequency(vel, radius, fps)
     return rpm
