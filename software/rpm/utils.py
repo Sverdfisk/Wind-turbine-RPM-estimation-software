@@ -1,10 +1,25 @@
 import numpy as np
+import math
 
 def calculate_error_percentage(measured_value: float, actual_value: float) -> float:
     if actual_value is None:
         return None
     error_percentage = abs(measured_value - actual_value) / actual_value * 100
     return error_percentage
+
+def view_angle_scaling(ground_to_turbine_angle: float, perspective_rotation_angle:float) -> float:
+    # Find the plane normal vector of the turbine
+    nx = math.cos(ground_to_turbine_angle) * math.sin(perspective_rotation_angle)
+    ny = math.cos(ground_to_turbine_angle) * math.cos(perspective_rotation_angle)
+    nz = math.sin(ground_to_turbine_angle)
+
+    turbine_normal = np.array([nx, ny, nz])
+    viewing_angle = np.array([0, 1, 0])
+
+    # Find the scaling factor of the measurements
+    angle_scale = np.dot(turbine_normal, viewing_angle)
+    rpm_scaling_factor = 1 / angle_scale
+    return rpm_scaling_factor
 
 def print_statistics(rpms: list, errors: list, real_rpm: float = None, rounding_factor: int = 2, verbose: bool = False) -> None:
     avg_rpm = round(np.average(rpms), rounding_factor)

@@ -17,7 +17,7 @@ parser.add_argument('-l', '--log', action='store_true', required=False, help="En
 args = parser.parse_args()
 
 # Feed configuration
-feed_path = '/home/ken/projects/windturbine/software/assets/windturbine4_angle_f12.5_r11.gif'
+feed_path = '/home/ken/projects/windturbine/software/assets/windturbine4_angle_f12.5_r12.gif'
 fps = args.fps
 real_rpm = args.real_rpm
 
@@ -46,7 +46,11 @@ for i in range(0,20):
             break
 
         # The data indices have pixel positions, the total movement in one frame is new_pos - old_pos
-        motion_vectors = (data[1]-data[0]) * feed.rpm_scaling_factor
+        if feed.shape == 'ELLIPSE':
+            motion_vectors = ((data[0]-data[1]) * feed.rpm_scaling_factor)
+        else:
+            motion_vectors = (data[0]-data[1])
+            
         rpm = crpm.get_rpm(motion_vectors, radius, fps)
 
         #Ensure that dead frames do not get counted 
@@ -62,7 +66,7 @@ for i in range(0,20):
             break
     
     if args.log:
-        #utils.print_statistics(rpms, errors, real_rpm=real_rpm)
+        utils.print_statistics(rpms, errors, real_rpm=real_rpm)
         with open("runs/run_results4_perspective_correction.csv", "a") as myfile:
             myfile.write(f"{run_number}, {np.average(rpms)}, {utils.calculate_error_percentage(np.average(rpms), real_rpm)}\n")
 

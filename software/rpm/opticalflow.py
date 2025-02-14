@@ -1,6 +1,7 @@
 import numpy as np
 import cv2 as cv
 import math
+from . import utils
 
 class opticalflow():
     def __init__(self, video_feed_path, crop_points = None, crosshair_size = [15,15], fps=30, threshold = 10, crosshair_offset_x = 0, crosshair_offset_y = 0):
@@ -42,21 +43,12 @@ class opticalflow():
         # Do a whole lot of trig to correct for persepective
         hypotenuse = self.h if (self.h > self.w) else self.w
         adjacent = self.w if (self.h > self.w) else self.h
-        perspective_angle = math.acos(adjacent/hypotenuse)
+        perspective_rotation_angle = math.acos(adjacent/hypotenuse)
 
         #TODO: THIS HAS TO BE DYNAMIC!!!
         ground_looking_up_const = 0.21 # radians
 
-        # Find the plane normal vector of the turbine
-        nx = math.cos(ground_looking_up_const) * math.sin(perspective_angle)
-        ny = math.cos(ground_looking_up_const) * math.cos(perspective_angle)
-        nz = math.sin(ground_looking_up_const)
-        self.turbine_normal = np.array([nx, ny, nz])
-        self.viewing_angle = np.array([0, 1, 0])
-
-        # Find the scaling factor of the measurements
-        angle_scale = np.dot(self.turbine_normal, self.viewing_angle)
-        self.rpm_scaling_factor = 1 / angle_scale
+        self.rpm_scaling_factor = utils.view_angle_scaling(ground_looking_up_const, perspective_rotation_angle)
         
         # Squareify the image to somewhat un-distort perspective 
         pts_src = np.float32([[0         , 0         ],   # top-left
@@ -122,6 +114,10 @@ class opticalflow():
         self.maskpoints = [(x_left + crosshair_offset_x), (x_right + crosshair_offset_x), (y_top + crosshair_offset_y), (y_bottom + crosshair_offset_y)]
         mask[(y_top + crosshair_offset_y):(y_bottom + crosshair_offset_y), (x_left + crosshair_offset_x):(x_right + crosshair_offset_x)] = 0
         return mask
+    
+    # TODO: implement this
+    def generate_circular_feature_mask_matrix(self, image: np.ndarray, crosshair_offset_x: int, crosshair_offset_y: int, radius: int):
+        pass
 
     def set_initial_frame(self) -> np.ndarray:
         ret, frame = self.feed.read()
