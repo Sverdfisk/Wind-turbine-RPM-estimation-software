@@ -11,30 +11,39 @@ np.set_printoptions(formatter={'all':lambda x: str(x)})
 # Look at rpm/opticalflow.py and rpm/calculate_rpm.py for details
 
 parser = argparse.ArgumentParser()
+<<<<<<< HEAD
 parser.add_argument('-f', '--fps', type=float, required=True, help="input feed FPS")
 parser.add_argument('-r', '--real_rpm', type=float, required=False, help="real rpm of wind turbine in feed")
+=======
+parser.add_argument('-f', '--fps', type=float, required=True, help="Input feed FPS")
+parser.add_argument('-r', '--real_rpm', type=float, required=False, help="Real rpm of wind turbine in feed")
+parser.add_argument('-l', '--log', action='store_true', required=False, help="Enables logging of runs")
+>>>>>>> ellipse_support
 args = parser.parse_args()
 
 # Feed configuration
-feed_path = '/home/ken/projects/windturbine/software/assets/windturbine3_f30_r24.gif'
+feed_path = '/home/ken/projects/windturbine/software/assets/windturbine4_angle_f12.5_r12.gif'
 fps = args.fps
 real_rpm = args.real_rpm
 
 # Feed configuration
-crop_points = [[0,115],[42,157]]
-crosshair_size = [40,40]
-radius = (crop_points[0][1] - crop_points[0][0]) / 2
+crop_points = [[0, 195],[335,430]]
+crosshair_size = [40,35]
+radius_y = (crop_points[0][1] - crop_points[0][0])
+radius_x = (crop_points[1][1] - crop_points[1][0])
+radius = radius_y if (radius_y > radius_x) else radius_x
 
 run_number = 1
 for i in range(0,20):
-
+    print(f'STARTING RUN {run_number}')
     rpms = []
     errors = []
     #restart the feed for every run
     feed = flow.opticalflow(feed_path, 
-                        crop_points = crop_points, 
-                        crosshair_size = crosshair_size, 
-                        fps=fps)
+                            crop_points = crop_points, 
+                            crosshair_size = crosshair_size, 
+                            fps=fps,
+                            crosshair_offset_x=25)
     
     while feed.isActive:
         data, image = feed.get_optical_flow_vectors()
@@ -42,7 +51,11 @@ for i in range(0,20):
             break
 
         # The data indices have pixel positions, the total movement in one frame is new_pos - old_pos
-        motion_vectors = data[1]-data[0]
+        if feed.shape == 'ELLIPSE':
+            motion_vectors = ((data[0]-data[1]) * feed.rpm_scaling_factor)
+        else:
+            motion_vectors = (data[0]-data[1])
+            
         rpm = crpm.get_rpm(motion_vectors, radius, fps)
 
         #Ensure that dead frames do not get counted 
@@ -56,9 +69,12 @@ for i in range(0,20):
         k = cv.waitKey(30) & 0xff
         if k == 27:
             break
-    #utils.print_statistics(rpms, errors, real_rpm=real_rpm)
-    with open("runs/run_results3.csv", "a") as myfile:
-        myfile.write(f"{run_number}, {np.average(rpms)}, {utils.calculate_error_percentage(np.average(rpms), real_rpm)}\n")
+    
+    if args.log:
+        utils.print_statistics(rpms, errors, real_rpm=real_rpm)
+        with open("runs/run_results4_perspective_correction.csv", "a") as myfile:
+            myfile.write(f"{run_number}, {np.average(rpms)}, {utils.calculate_error_percentage(np.average(rpms), real_rpm)}\n")
+
     run_number += 1
 
 cv.destroyAllWindows()

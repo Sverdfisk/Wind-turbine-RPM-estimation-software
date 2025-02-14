@@ -1,15 +1,20 @@
 import numpy as np
 import cv2 as cv
+import math
+from . import utils
 
 class opticalflow():
-    def __init__(self, video_feed_path, crop_points = None, crosshair_size = [15,15], fps=60, threshold = 10):
+    def __init__(self, video_feed_path, crop_points = None, crosshair_size = [15,15], fps=30, threshold = 10, crosshair_offset_x = 0, crosshair_offset_y = 0):
 
         #Video feed settings
         self.feed = cv.VideoCapture(video_feed_path)
         self.fps = fps
         self.feed.set(cv.CAP_PROP_FPS, self.fps)
         self.crop_points = crop_points
+<<<<<<< HEAD
         self.old_frame = self.get_frame()
+=======
+>>>>>>> ellipse_support
 
         # Set image frame parameters
         if ((crop_points[0][1] - crop_points[0][0]) == (crop_points[1][1] - crop_points[1][0])):
@@ -24,21 +29,49 @@ class opticalflow():
         self.st_params = self.set_shi_tomasi_params()
         self.lk_params = self.set_lucas_kanade_params()
         self.set_crosshair_size(crosshair_size)
-        self.feature_mask = self.generate_feature_mask_matrix(self.old_frame)
+        self.feature_mask = self.generate_feature_mask_matrix(self.old_frame, crosshair_offset_x, crosshair_offset_y)
 
         #Control config
-        if ((crop_points[0][1] - crop_points[0][0]) == (crop_points[1][1] - crop_points[1][0])):
-            print("SQUARE CHECK OK")
         self.isActive = True
 
         # Sets tracking point threshold. A reasonable range is 0 to about 60  (10 is strict).
         # lower threshold -> better confidence is needed to set a correlation as "successful".
         # higher threshold -> More options for pixels that could be the one we track. Noisy, but more data.
-        self.threshold = threshold
+        self.threshold = threshold 
 
         #Color for drawing purposes
         self.color = np.random.randint(0, 255, (100, 3))
 
+    def set_perspective_parameters(self):
+        
+        # Do a whole lot of trig to correct for persepective
+        hypotenuse = self.h if (self.h > self.w) else self.w
+        adjacent = self.w if (self.h > self.w) else self.h
+        perspective_rotation_angle = math.acos(adjacent/hypotenuse)
+
+        #TODO: THIS HAS TO BE DYNAMIC!!!
+        ground_looking_up_const = 0.21 # radians
+
+        self.rpm_scaling_factor = utils.view_angle_scaling(ground_looking_up_const, perspective_rotation_angle)
+        
+        # Squareify the image to somewhat un-distort perspective 
+        pts_src = np.float32([[0         , 0         ],   # top-left
+                              [self.w - 1, 0         ],   # top-right
+                              [self.w - 1, self.h - 1],   # bottom-right
+                              [0         , self.h - 1]])  # bottom-left
+
+
+        new_h = int(hypotenuse/0.98)
+        pts_dst = np.float32([[0         , 0         ],  # top-left in the new image
+                              [new_h, 0         ],  # top-right in the new image
+                              [new_h, new_h],  # bottom-right in the new image
+                              [0         , new_h]]) # bottom-left in the new image
+
+        self.translation_matrix = cv.getPerspectiveTransform(pts_src, pts_dst)
+
+    def correct_frame_perspective(self, frame):
+        warped = cv.warpPerspective(frame, self.translation_matrix, (self.h, self.h))
+        return warped
 
     def set_crosshair_size(self, size):
         if size is not None:
@@ -77,14 +110,32 @@ class opticalflow():
         y_bottom = int(centre[0]+sizey)
         return [x_left, x_right, y_top, y_bottom]
 
-    def generate_feature_mask_matrix(self, image: np.ndarray) -> np.ndarray:
+    def generate_feature_mask_matrix(self, image: np.ndarray, crosshair_offset_x, crosshair_offset_y) -> np.ndarray:
         size = [self.crosshair_size_x, self.crosshair_size_y]
         height, width, channels = image.shape
         mask = np.full((height, width), 255, dtype=np.uint8)
         x_left, x_right, y_top, y_bottom = self.translate_coords_to_centre(height, width, sizex = size[0], sizey = size[1])
-        self.maskpoints = [x_left, x_right, y_top, y_bottom]
-        mask[y_top:y_bottom, x_left:x_right] = 0
+        self.maskpoints = [(x_left + crosshair_offset_x), (x_right + crosshair_offset_x), (y_top + crosshair_offset_y), (y_bottom + crosshair_offset_y)]
+        mask[(y_top + crosshair_offset_y):(y_bottom + crosshair_offset_y), (x_left + crosshair_offset_x):(x_right + crosshair_offset_x)] = 0
         return mask
+    
+    # TODO: implement this
+    def generate_circular_feature_mask_matrix(self, image: np.ndarray, crosshair_offset_x: int, crosshair_offset_y: int, radius: int):
+        pass
+
+    def set_initial_frame(self) -> np.ndarray:
+        ret, frame = self.feed.read()
+        if (self.crop_points is not None) and ret:
+            frame = frame[self.crop_points[0][0]:self.crop_points[0][1], 
+                          self.crop_points[1][0]:self.crop_points[1][1]]
+            
+        self.h, self.w, self.ch = frame.shape
+        self.set_perspective_parameters()
+        self.isActive = ret
+        
+        if self.shape == 'ELLIPSE':
+            frame = self.correct_frame_perspective(frame)
+        return frame
 
     def get_frame(self) -> np.ndarray:
         ret, frame = self.feed.read()
@@ -93,11 +144,12 @@ class opticalflow():
         if (self.crop_points is not None) and ret:
             frame = frame[self.crop_points[0][0]:self.crop_points[0][1], 
                           self.crop_points[1][0]:self.crop_points[1][1]]
-            
+        
+        if self.shape == 'ELLIPSE' and ret:
+            frame = self.correct_frame_perspective(frame)
+
         return frame if ret else np.zeros_like(frame)
 
-    # The model uses the feature_mask parameter to ignore a section in the middle of the image.
-    # The model is assumes a dead zone is desired with the wind turbine hub in the centre of the frame.
     def draw_optical_flow(self, image: np.ndarray, old_points: list, new_points: list, overwrite = False) -> np.ndarray:
         if overwrite:
             self.mask = np.zeros_like(image)
@@ -128,7 +180,6 @@ class opticalflow():
         
         # find features in our old grayscale frame. feature mask is dynamic but manual
         p0 = cv.goodFeaturesToTrack(old_frame_gray, mask = self.feature_mask, **self.st_params)
-
         p1, st, err = cv.calcOpticalFlowPyrLK(old_frame_gray, new_frame_gray, p0, None, **self.lk_params)
 
         #Select good tracking points based on successful tracking
