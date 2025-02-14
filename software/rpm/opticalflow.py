@@ -37,22 +37,33 @@ class opticalflow():
         self.color = np.random.randint(0, 255, (100, 3))
 
     def set_perspective_parameters(self):
-        self.diff = (self.h-self.w) if (self.h > self.w) else (self.w-self.h)
-
         self.input_coords = np.float32([[0, 0], #TL
                                         [self.w - 1, 0], #TR
                                         [self.w - 1, self.h - 1], #BR
                                         [0, self.h - 1]] ) #BL
 
 
-        self.translation_output_coords = np.float32([[0, 0], 
-                                                     [self.w + self.diff, 0], 
-                                                     [self.w + self.diff, self.h], 
-                                                     [0, self.h]])
+        scale_distance_based_y = np.float32([[0, 0],  #TL
+                                             [self.w -1, 0], #TR
+                                             [self.w - 1, (self.h-1)/1.12 ], #BR
+                                             [0, (self.h - 1)/1.12]]) #BL
+        
+        # Translation 1: compensate for distance
+        distance_translation = cv.getPerspectiveTransform(self.input_coords, scale_distance_based_y)
+        
+        self.h = int(self.h/1.12)
+        self.w = self.h
+        squareified_coords = np.float32([[0, 0],  #TL
+                                                     [self.h, 0], #TR
+                                                     [self.h, self.h], #BR
+                                                     [0, self.h]]) #BL
 
-        self.translation_matrix = cv.getPerspectiveTransform(self.input_coords, self.translation_output_coords)
+        # Translation 2: compensate for rotation
+        squarification_translation = cv.getPerspectiveTransform(scale_distance_based_y, squareified_coords)
 
-    def perspective_correct(self, frame):
+        self.translation_matrix = squarification_translation @ distance_translation
+
+    def correct_frame_perspective(self, frame):
         warped = cv.warpPerspective(frame, self.translation_matrix, (self.h, self.h))
         return warped
 
@@ -113,7 +124,7 @@ class opticalflow():
         self.isActive = ret
         
         if self.shape == 'ELLIPSE':
-            frame = self.perspective_correct(frame)
+            frame = self.correct_frame_perspective(frame)
         return frame
 
     def get_frame(self) -> np.ndarray:
@@ -125,7 +136,7 @@ class opticalflow():
                           self.crop_points[1][0]:self.crop_points[1][1]]
         
         if self.shape == 'ELLIPSE' and ret:
-            frame = self.perspective_correct(frame)
+            frame = self.correct_frame_perspective(frame)
 
         return frame if ret else np.zeros_like(frame)
 
@@ -159,7 +170,6 @@ class opticalflow():
         
         # find features in our old grayscale frame. feature mask is dynamic but manual
         p0 = cv.goodFeaturesToTrack(old_frame_gray, mask = self.feature_mask, **self.st_params)
-
         p1, st, err = cv.calcOpticalFlowPyrLK(old_frame_gray, new_frame_gray, p0, None, **self.lk_params)
 
         #Select good tracking points based on successful tracking
