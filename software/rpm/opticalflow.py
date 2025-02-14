@@ -1,8 +1,9 @@
 import numpy as np
 import cv2 as cv
+import math
 
 class opticalflow():
-    def __init__(self, video_feed_path, crop_points = None, crosshair_size = [15,15], fps=60, threshold = 10, crosshair_offset_x = 0, crosshair_offset_y = 0):
+    def __init__(self, video_feed_path, crop_points = None, crosshair_size = [15,15], fps=30, threshold = 10, crosshair_offset_x = 0, crosshair_offset_y = 0):
 
         #Video feed settings
         self.feed = cv.VideoCapture(video_feed_path)
@@ -37,31 +38,40 @@ class opticalflow():
         self.color = np.random.randint(0, 255, (100, 3))
 
     def set_perspective_parameters(self):
-        self.input_coords = np.float32([[0, 0], #TL
-                                        [self.w - 1, 0], #TR
-                                        [self.w - 1, self.h - 1], #BR
-                                        [0, self.h - 1]] ) #BL
-
-
-        scale_distance_based_y = np.float32([[0, 0],  #TL
-                                             [self.w -1, 0], #TR
-                                             [self.w - 1, (self.h-1)/1.12 ], #BR
-                                             [0, (self.h - 1)/1.12]]) #BL
         
-        # Translation 1: compensate for distance
-        distance_translation = cv.getPerspectiveTransform(self.input_coords, scale_distance_based_y)
+        # Do a whole lot of trig to correct for persepective
+        hypotenuse = self.h if (self.h > self.w) else self.w
+        adjacent = self.w if (self.h > self.w) else self.h
+        perspective_angle = math.acos(adjacent/hypotenuse)
+
+        #TODO: THIS HAS TO BE DYNAMIC!!!
+        ground_looking_up_const = 0.21 # radians
+
+        # Find the plane normal vector of the turbine
+        nx = math.cos(ground_looking_up_const) * math.sin(perspective_angle)
+        ny = math.cos(ground_looking_up_const) * math.cos(perspective_angle)
+        nz = math.sin(ground_looking_up_const)
+        self.turbine_normal = np.array([nx, ny, nz])
+        self.viewing_angle = np.array([0, 1, 0])
+
+        # Find the scaling factor of the measurements
+        angle_scale = np.dot(self.turbine_normal, self.viewing_angle)
+        self.rpm_scaling_factor = 1 / angle_scale
         
-        self.h = int(self.h/1.12)
-        self.w = self.h
-        squareified_coords = np.float32([[0, 0],  #TL
-                                                     [self.h, 0], #TR
-                                                     [self.h, self.h], #BR
-                                                     [0, self.h]]) #BL
+        # Squareify the image to somewhat un-distort perspective 
+        pts_src = np.float32([[0         , 0         ],   # top-left
+                              [self.w - 1, 0         ],   # top-right
+                              [self.w - 1, self.h - 1],   # bottom-right
+                              [0         , self.h - 1]])  # bottom-left
 
-        # Translation 2: compensate for rotation
-        squarification_translation = cv.getPerspectiveTransform(scale_distance_based_y, squareified_coords)
 
-        self.translation_matrix = squarification_translation @ distance_translation
+        new_h = int(hypotenuse/0.98)
+        pts_dst = np.float32([[0         , 0         ],  # top-left in the new image
+                              [new_h, 0         ],  # top-right in the new image
+                              [new_h, new_h],  # bottom-right in the new image
+                              [0         , new_h]]) # bottom-left in the new image
+
+        self.translation_matrix = cv.getPerspectiveTransform(pts_src, pts_dst)
 
     def correct_frame_perspective(self, frame):
         warped = cv.warpPerspective(frame, self.translation_matrix, (self.h, self.h))

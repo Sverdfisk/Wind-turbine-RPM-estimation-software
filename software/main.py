@@ -21,7 +21,6 @@ feed_path = '/home/ken/projects/windturbine/software/assets/windturbine4_angle_f
 fps = args.fps
 real_rpm = args.real_rpm
 
-
 # Feed configuration
 crop_points = [[0, 195],[335,430]]
 crosshair_size = [40,35]
@@ -36,10 +35,10 @@ for i in range(0,20):
     errors = []
     #restart the feed for every run
     feed = flow.opticalflow(feed_path, 
-                        crop_points = crop_points, 
-                        crosshair_size = crosshair_size, 
-                        fps=fps,
-                        crosshair_offset_x=25)
+                            crop_points = crop_points, 
+                            crosshair_size = crosshair_size, 
+                            fps=fps,
+                            crosshair_offset_x=25)
     
     while feed.isActive:
         data, image = feed.get_optical_flow_vectors()
@@ -47,7 +46,7 @@ for i in range(0,20):
             break
 
         # The data indices have pixel positions, the total movement in one frame is new_pos - old_pos
-        motion_vectors = data[1]-data[0]
+        motion_vectors = (data[1]-data[0]) * feed.rpm_scaling_factor
         rpm = crpm.get_rpm(motion_vectors, radius, fps)
 
         #Ensure that dead frames do not get counted 
@@ -62,7 +61,7 @@ for i in range(0,20):
         if k == 27:
             break
     
-    if args.log: # if logging enabled
+    if args.log:
         #utils.print_statistics(rpms, errors, real_rpm=real_rpm)
         with open("runs/run_results4_perspective_correction.csv", "a") as myfile:
             myfile.write(f"{run_number}, {np.average(rpms)}, {utils.calculate_error_percentage(np.average(rpms), real_rpm)}\n")
