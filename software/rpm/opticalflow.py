@@ -4,7 +4,7 @@ import math
 from . import utils
 
 class opticalflow():
-    def __init__(self, video_feed_path, crop_points = None, crosshair_size = [15,15], fps=30, threshold = 10, crosshair_offset_x = 0, crosshair_offset_y = 0):
+    def __init__(self, video_feed_path, crop_points = None, crosshair_size = [15,15], fps=30, threshold = 10, crosshair_offset_x = 0, crosshair_offset_y = 0, ground_angle = 0):
 
         #Video feed settings
         self.feed = cv.VideoCapture(video_feed_path)
@@ -18,7 +18,7 @@ class opticalflow():
         else:
             self.shape = 'ELLIPSE'
 
-        self.old_frame = self.set_initial_frame()
+        self.old_frame = self.set_initial_frame(ground_angle)
         self.set_mask_size()
 
         #Algorithm config
@@ -38,30 +38,26 @@ class opticalflow():
         #Color for drawing purposes
         self.color = np.random.randint(0, 255, (100, 3))
 
-    def set_perspective_parameters(self):
+    def set_perspective_parameters(self, ground_angle):
         
         # Do a whole lot of trig to correct for persepective
         hypotenuse = self.h if (self.h > self.w) else self.w
         adjacent = self.w if (self.h > self.w) else self.h
         perspective_rotation_angle = math.acos(adjacent/hypotenuse)
 
-        #TODO: THIS HAS TO BE DYNAMIC!!!
-        ground_looking_up_const = 0.21 # radians
-
-        self.rpm_scaling_factor = utils.view_angle_scaling(ground_looking_up_const, perspective_rotation_angle)
-        
+        self.rpm_scaling_factor = utils.view_angle_scaling(ground_angle, perspective_rotation_angle)
+        print(self.rpm_scaling_factor) 
         # Squareify the image to somewhat un-distort perspective 
         pts_src = np.float32([[0         , 0         ],   # top-left
                               [self.w - 1, 0         ],   # top-right
                               [self.w - 1, self.h - 1],   # bottom-right
                               [0         , self.h - 1]])  # bottom-left
 
-
-        new_h = int(hypotenuse/0.98)
+        new_h = self.h if (self.h > self.w) else self.w
         pts_dst = np.float32([[0         , 0         ],  # top-left in the new image
-                              [new_h, 0         ],  # top-right in the new image
-                              [new_h, new_h],  # bottom-right in the new image
-                              [0         , new_h]]) # bottom-left in the new image
+                              [new_h     , 0         ],  # top-right in the new image
+                              [new_h     , new_h     ],  # bottom-right in the new image
+                              [0         , new_h     ]]) # bottom-left in the new image
 
         self.translation_matrix = cv.getPerspectiveTransform(pts_src, pts_dst)
 
@@ -119,14 +115,14 @@ class opticalflow():
     def generate_circular_feature_mask_matrix(self, image: np.ndarray, crosshair_offset_x: int, crosshair_offset_y: int, radius: int):
         pass
 
-    def set_initial_frame(self) -> np.ndarray:
+    def set_initial_frame(self, ground_angle) -> np.ndarray:
         ret, frame = self.feed.read()
         if (self.crop_points is not None) and ret:
             frame = frame[self.crop_points[0][0]:self.crop_points[0][1], 
                           self.crop_points[1][0]:self.crop_points[1][1]]
             
         self.h, self.w, self.ch = frame.shape
-        self.set_perspective_parameters()
+        self.set_perspective_parameters(ground_angle)
         self.isActive = ret
         
         if self.shape == 'ELLIPSE':

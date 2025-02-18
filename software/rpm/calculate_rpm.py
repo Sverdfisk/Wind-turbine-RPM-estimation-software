@@ -11,7 +11,6 @@ def calculate_frequency(velocity: float, radius: int, fps: float) -> float:
     return freq
 
 def filter_magnitudes(magnitudes: list) -> list:
-
     magnitudes = np.array(magnitudes)
     std_dev = np.std(magnitudes)
     mean = np.mean(magnitudes)

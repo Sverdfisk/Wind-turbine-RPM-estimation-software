@@ -22,11 +22,11 @@ fps = args.fps
 real_rpm = args.real_rpm
 
 # Feed configuration
-crop_points = [[0, 195],[335,430]]
-crosshair_size = [40,35]
+crop_points = [[0, 200],[340,425]]
+crosshair_size = [40,70]
 radius_y = (crop_points[0][1] - crop_points[0][0])
 radius_x = (crop_points[1][1] - crop_points[1][0])
-radius = radius_y if (radius_y > radius_x) else radius_x
+radius = radius_y/2 if (radius_y > radius_x) else radius_x/2
 
 run_number = 1
 for i in range(0,20):
@@ -38,7 +38,9 @@ for i in range(0,20):
                             crop_points = crop_points, 
                             crosshair_size = crosshair_size, 
                             fps=fps,
-                            crosshair_offset_x=25)
+                            crosshair_offset_x=30,
+                            crosshair_offset_y=25,
+                            ground_angle=0.21)
     
     while feed.isActive:
         data, image = feed.get_optical_flow_vectors()
@@ -46,11 +48,8 @@ for i in range(0,20):
             break
 
         # The data indices have pixel positions, the total movement in one frame is new_pos - old_pos
-        if feed.shape == 'ELLIPSE':
-            motion_vectors = ((data[0]-data[1]) * feed.rpm_scaling_factor)
-        else:
-            motion_vectors = (data[0]-data[1])
-            
+        motion_vectors = (data[0]-data[1]) 
+        scaled_vectors = motion_vectors * feed.rpm_scaling_factor
         rpm = crpm.get_rpm(motion_vectors, radius, fps)
 
         #Ensure that dead frames do not get counted 
@@ -67,7 +66,7 @@ for i in range(0,20):
     
     if args.log:
         utils.print_statistics(rpms, errors, real_rpm=real_rpm)
-        with open("runs/run_results4_perspective_correction.csv", "a") as myfile:
+        with open("runs/run_results4_new.csv", "a") as myfile:
             myfile.write(f"{run_number}, {np.average(rpms)}, {utils.calculate_error_percentage(np.average(rpms), real_rpm)}\n")
 
     run_number += 1
