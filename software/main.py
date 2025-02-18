@@ -3,6 +3,7 @@ from rpm import opticalflow as flow
 from rpm import calculate_rpm as crpm
 from rpm import utils
 import numpy as np
+import json
 import argparse
 np.set_printoptions(formatter={'all':lambda x: str(x)})
 
