@@ -22,13 +22,15 @@ for i in range(0, args.runs):
     print(f'STARTING RUN {run_number}')
     rpms = []
     errors = []
+
     #restart the feed for every run
     feed = flow.opticalflow(params["target"], 
-                            crop_points = params["crop_points"], 
-                            crosshair_size = params["crosshair_size"], 
-                            fps=params["fps"],
-                            crosshair_offset_x=params["crosshair_offset_x"],
-                            crosshair_offset_y=params["crosshair_offset_y"])
+                            crop_points =        params["crop_points"], 
+                            crosshair_size =     params["crosshair_size"], 
+                            fps =                params["fps"],
+                            crosshair_offset_x = params["crosshair_offset_x"],
+                            crosshair_offset_y = params["crosshair_offset_y"],
+                            ground_angle =       params["ground_angle"])
     
     while feed.isActive:
         data, image = feed.get_optical_flow_vectors()

@@ -5,7 +5,7 @@
   "radius_x": 60,
   "radius_y": 60,
   "radius_max": 60,
-  "ground_angle": 0,
+  "ground_angle": 0.21,
   "fps": 30,
   "real_rpm": 24,
   "crosshair_size": [50,50],
