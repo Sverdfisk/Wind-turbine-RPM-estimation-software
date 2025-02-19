@@ -46,7 +46,6 @@ class opticalflow():
         perspective_rotation_angle = math.acos(adjacent/hypotenuse)
 
         self.rpm_scaling_factor = utils.view_angle_scaling(ground_angle, perspective_rotation_angle)
-        print(self.rpm_scaling_factor) 
         # Squareify the image to somewhat un-distort perspective 
         pts_src = np.float32([[0         , 0         ],   # top-left
                               [self.w - 1, 0         ],   # top-right

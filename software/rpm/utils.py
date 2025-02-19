@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import json
 
 def calculate_error_percentage(measured_value: float, actual_value: float) -> float:
     if actual_value is None:
@@ -46,3 +47,8 @@ def print_statistics(rpms: list, errors: list, real_rpm: float = None, rounding_
         print(f'Average rpm: {avg_rpm}')
 
     return None
+
+def parse_json(file_path: str) -> dict:
+    with open(file_path) as config_file:
+        params = json.load(config_file)
+        return params

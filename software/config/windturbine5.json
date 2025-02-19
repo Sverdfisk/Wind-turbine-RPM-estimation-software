@@ -1,0 +1,13 @@
+{
+  "target": "/home/ken/projects/windturbine/software/assets/windturbine5_f10_r25.gif",
+  "crop_points": [[15,120],[45,150]],
+  "radius_x": 52.5,
+  "radius_y": 52.5,
+  "radius_max": 52.5,
+  "ground_angle": 0,
+  "fps": 10,
+  "real_rpm": 25,
+  "crosshair_size": [15, 15],
+  "crosshair_offset_x": 0,
+  "crosshair_offset_y": 30
+}

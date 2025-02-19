@@ -3,7 +3,6 @@ from rpm import opticalflow as flow
 from rpm import calculate_rpm as crpm
 from rpm import utils
 import numpy as np
-import json
 import argparse
 np.set_printoptions(formatter={'all':lambda x: str(x)})
 
@@ -12,22 +11,10 @@ np.set_printoptions(formatter={'all':lambda x: str(x)})
 # Look at rpm/opticalflow.py and rpm/calculate_rpm.py for details
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-f', '--fps', type=float, required=True, help="Input feed FPS")
-parser.add_argument('-r', '--real_rpm', type=float, required=False, help="Real rpm of wind turbine in feed")
+parser.add_argument('cfg')
 parser.add_argument('-l', '--log', action='store_true', required=False, help="Enables logging of runs")
 args = parser.parse_args()
-
-# Feed configuration
-feed_path = '/home/ken/projects/windturbine/software/assets/windturbine4_angle_f12.5_r12.gif'
-fps = args.fps
-real_rpm = args.real_rpm
-
-# Feed configuration
-crop_points = [[0, 200],[340,425]]
-crosshair_size = [40,70]
-radius_y = (crop_points[0][1] - crop_points[0][0])
-radius_x = (crop_points[1][1] - crop_points[1][0])
-radius = radius_y/2 if (radius_y > radius_x) else radius_x/2
+params = utils.parse_json(args.cfg)
 
 run_number = 1
 for i in range(0,20):
@@ -35,13 +22,12 @@ for i in range(0,20):
     rpms = []
     errors = []
     #restart the feed for every run
-    feed = flow.opticalflow(feed_path, 
-                            crop_points = crop_points, 
-                            crosshair_size = crosshair_size, 
-                            fps=fps,
-                            crosshair_offset_x=30,
-                            crosshair_offset_y=25,
-                            ground_angle=0.21)
+    feed = flow.opticalflow(params["target"], 
+                            crop_points = params["crop_points"], 
+                            crosshair_size = params["crosshair_size"], 
+                            fps=params["fps"],
+                            crosshair_offset_x=params["crosshair_offset_x"],
+                            crosshair_offset_y=params["crosshair_offset_y"])
     
     while feed.isActive:
         data, image = feed.get_optical_flow_vectors()
@@ -51,12 +37,12 @@ for i in range(0,20):
         # The data indices have pixel positions, the total movement in one frame is new_pos - old_pos
         motion_vectors = (data[0]-data[1]) 
         scaled_vectors = motion_vectors * feed.rpm_scaling_factor
-        rpm = crpm.get_rpm(motion_vectors, radius, fps)
+        rpm = crpm.get_rpm(motion_vectors, params["radius_max"], params["fps"])
 
         #Ensure that dead frames do not get counted 
         if rpm is not None:
             rpms.append(rpm)
-            error = utils.calculate_error_percentage(rpm, real_rpm)
+            error = utils.calculate_error_percentage(rpm, params["real_rpm"])
             errors.append(error)
 
         flow_image = feed.draw_optical_flow(image, data[1], data[0])
@@ -66,9 +52,9 @@ for i in range(0,20):
             break
     
     if args.log:
-        utils.print_statistics(rpms, errors, real_rpm=real_rpm)
+        utils.print_statistics(rpms, errors, real_rpm=params["real_rpm"])
         with open("runs/run_results4_new.csv", "a") as myfile:
-            myfile.write(f"{run_number}, {np.average(rpms)}, {utils.calculate_error_percentage(np.average(rpms), real_rpm)}\n")
+            myfile.write(f"{run_number}, {np.average(rpms)}, {utils.calculate_error_percentage(np.average(rpms), params["real_rpm"])}\n")
 
     run_number += 1
 
