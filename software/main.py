@@ -53,9 +53,7 @@ for i in range(0,20):
     
     if args.log:
         utils.print_statistics(rpms, errors, real_rpm=params["real_rpm"])
-        with open("runs/run_results4_new.csv", "a") as myfile:
-            myfile.write(f"{run_number}, {np.average(rpms)}, {utils.calculate_error_percentage(np.average(rpms), params["real_rpm"])}\n")
-
+        utils.write_output(params["id"], run_number, rpms, params["real_rpm"])
     run_number += 1
 
 cv.destroyAllWindows()

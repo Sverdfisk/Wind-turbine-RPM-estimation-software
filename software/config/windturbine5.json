@@ -1,4 +1,5 @@
 {
+  "id": 5,
   "target": "/home/ken/projects/windturbine/software/assets/windturbine5_f10_r25.gif",
   "crop_points": [[15,120],[45,150]],
   "radius_x": 52.5,

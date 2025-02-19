@@ -52,3 +52,7 @@ def parse_json(file_path: str) -> dict:
     with open(file_path) as config_file:
         params = json.load(config_file)
         return params
+
+def write_output(turbine_id: int, run_number: int, rpms: list, real_rpm: int = None):
+    with open(f"runs/run_turbine{str(turbine_id)}.csv", "a") as output_file:
+        output_file.write(f"{run_number}, {np.average(rpms)}, {calculate_error_percentage(np.average(rpms), real_rpm)}\n")
