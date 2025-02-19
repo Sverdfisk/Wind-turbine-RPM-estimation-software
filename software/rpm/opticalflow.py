@@ -3,34 +3,36 @@ import cv2 as cv
 import math
 from . import utils
 
-class opticalflow():
-    def __init__(self, video_feed_path, crop_points = None, crosshair_size = [15,15], fps=30, threshold = 10, crosshair_offset_x = 0, crosshair_offset_y = 0, ground_angle = 0):
-
+class RpmFromFeed():
+    def __init__(self, threshold = 10, **kwargs):
+        
         #Video feed settings
-        self.feed = cv.VideoCapture(video_feed_path)
-        self.fps = fps
+        self.feed = cv.VideoCapture(kwargs['target'])
+        self.fps = kwargs['fps']
         self.feed.set(cv.CAP_PROP_FPS, self.fps)
-        self.crop_points = crop_points
+        self.crop_points = kwargs['crop_points']
 
         # Set image frame parameters
-        if ((crop_points[0][1] - crop_points[0][0]) == (crop_points[1][1] - crop_points[1][0])):
+        if ((self.crop_points[0][1] - self.crop_points[0][0]) == (self.crop_points[1][1] - self.crop_points[1][0])):
             self.shape = 'SQUARE'
         else:
-            self.shape = 'ELLIPSE'
-
-        self.old_frame = self.set_initial_frame(ground_angle)
+            self.shape = 'RECT'
+        self.ground_angle = kwargs['ground_angle']
+        self.old_frame = self.set_initial_frame(self.ground_angle)
         self.set_mask_size()
 
         #Algorithm config
         self.st_params = self.set_shi_tomasi_params()
         self.lk_params = self.set_lucas_kanade_params()
-        self.set_crosshair_size(crosshair_size)
+        self.crosshair_size = kwargs['crosshair_size']
+        self.set_crosshair_size(self.crosshair_size)
+        crosshair_offset_x, crosshair_offset_y = kwargs['crosshair_offset_x'], kwargs['crosshair_offset_y']
         self.feature_mask = self.generate_feature_mask_matrix(self.old_frame, crosshair_offset_x, crosshair_offset_y)
 
         #Control config
         self.isActive = True
 
-        # Sets tracking point threshold. A reasonable range is 0 to about 60  (10 is strict).
+        # Sets tracking point threshold, i.e acceptable tracking distance. A reasonable range is 0 to about 60  (10 is strict).
         # lower threshold -> better confidence is needed to set a correlation as "successful".
         # higher threshold -> More options for pixels that could be the one we track. Noisy, but more data.
         self.threshold = threshold 
@@ -124,7 +126,7 @@ class opticalflow():
         self.set_perspective_parameters(ground_angle)
         self.isActive = ret
         
-        if self.shape == 'ELLIPSE':
+        if self.shape == 'RECT':
             frame = self.correct_frame_perspective(frame)
         return frame
 
@@ -136,7 +138,7 @@ class opticalflow():
             frame = frame[self.crop_points[0][0]:self.crop_points[0][1], 
                           self.crop_points[1][0]:self.crop_points[1][1]]
         
-        if self.shape == 'ELLIPSE' and ret:
+        if self.shape == 'RECT' and ret:
             frame = self.correct_frame_perspective(frame)
 
         return frame if ret else np.zeros_like(frame)

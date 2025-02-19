@@ -24,14 +24,8 @@ for i in range(0, args.runs):
     errors = []
 
     #restart the feed for every run
-    feed = flow.opticalflow(params["target"], 
-                            crop_points =        params["crop_points"], 
-                            crosshair_size =     params["crosshair_size"], 
-                            fps =                params["fps"],
-                            crosshair_offset_x = params["crosshair_offset_x"],
-                            crosshair_offset_y = params["crosshair_offset_y"],
-                            ground_angle =       params["ground_angle"])
-    
+    feed = flow.RpmFromFeed(**params)
+
     while feed.isActive:
         data, image = feed.get_optical_flow_vectors()
         if (data is None) or (image is None): # If this happens, the video/gif is complete or the feed is interrupted
