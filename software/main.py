@@ -13,7 +13,6 @@ np.set_printoptions(formatter={'all':lambda x: str(x)})
 parser = argparse.ArgumentParser()
 parser.add_argument('cfg')
 parser.add_argument('-l', '--log', action='store_true', required=False, help="Enables logging of runs")
-parser.add_argument('-s', '--silent', action='store_true', required=False, help="Do not show images while calculating rpm")
 parser.add_argument('-r', '--runs', type=int, required=False, default=10, help="Override number of runs")
 args = parser.parse_args()
 params = utils.parse_json(args.cfg)
@@ -47,14 +46,12 @@ for i in range(0, args.runs):
             error = utils.calculate_error_percentage(rpm, params["real_rpm"])
             errors.append(error)
 
-        if not args.silent:
-            flow_image = feed.draw_optical_flow(image, data[1], data[0])
-            cv.imshow('Image feed', flow_image)
-
+        flow_image = feed.draw_optical_flow(image, data[1], data[0])
+        cv.imshow('Image feed', flow_image) # This MUST be called to refresh frames.
         k = cv.waitKey(30) & 0xff
         if k == 27:
             break
-    
+
     if args.log:
         utils.print_statistics(rpms, errors, real_rpm=params["real_rpm"])
         utils.write_output(params["id"], run_number, rpms, params["real_rpm"])
