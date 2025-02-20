@@ -1,10 +1,10 @@
 import numpy as np
 import cv2 as cv
 import math
-from . import utils
+from . import calculate_rpm as crpm
 
 class RpmFromFeed():
-    def __init__(self, threshold = 10, **kwargs):
+    def __init__(self, threshold = 10, mask='circle', **kwargs):
         for key, value in kwargs.items():
            setattr(self, key, value)
 
@@ -23,8 +23,12 @@ class RpmFromFeed():
         #Algorithm config
         self.st_params = self.set_shi_tomasi_params()
         self.lk_params = self.set_lucas_kanade_params()
-        self.set_crosshair_size(self.crosshair_size)
-        self.feature_mask = self.generate_feature_mask_matrix(self.old_frame, self.crosshair_offset_x, self.crosshair_offset_y)
+        self.set_deadzone_size(self.deadzone_size)
+        if mask == 'circle':
+            deadzone_radius = int(math.sqrt(self.deadzone_size[0]*self.deadzone_size[1]))
+            self.feature_mask = self.generate_circular_feature_mask_matrix(self.old_frame, self.deadzone_offset_x, self.deadzone_offset_y, deadzone_radius)
+        else:
+            self.feature_mask = self.generate_feature_mask_matrix(self.old_frame, self.deadzone_offset_x, self.deadzone_offset_y)
 
         #Control config
         self.isActive = True
@@ -44,7 +48,7 @@ class RpmFromFeed():
         adjacent = self.w if (self.h > self.w) else self.h
         perspective_rotation_angle = math.acos(adjacent/hypotenuse)
 
-        self.rpm_scaling_factor = utils.view_angle_scaling(ground_angle, perspective_rotation_angle)
+        self.rpm_scaling_factor = crpm.view_angle_scaling(ground_angle, perspective_rotation_angle)
         # Squareify the image to somewhat un-distort perspective 
         pts_src = np.float32([[0         , 0         ],   # top-left
                               [self.w - 1, 0         ],   # top-right
@@ -63,9 +67,9 @@ class RpmFromFeed():
         warped = cv.warpPerspective(frame, self.translation_matrix, (self.h, self.h))
         return warped
 
-    def set_crosshair_size(self, size):
+    def set_deadzone_size(self, size):
         if size is not None:
-            self.crosshair_size_x, self.crosshair_size_y = size
+            self.deadzone_size_x, self.deadzone_size_y = size
         else:
             pass
 
@@ -100,18 +104,20 @@ class RpmFromFeed():
         y_bottom = int(centre[0]+sizey)
         return [x_left, x_right, y_top, y_bottom]
 
-    def generate_feature_mask_matrix(self, image: np.ndarray, crosshair_offset_x, crosshair_offset_y) -> np.ndarray:
-        size = [self.crosshair_size_x, self.crosshair_size_y]
+    def generate_feature_mask_matrix(self, image: np.ndarray, deadzone_offset_x, deadzone_offset_y) -> np.ndarray:
+        size = [self.deadzone_size_x, self.deadzone_size_y]
         height, width, channels = image.shape
         mask = np.full((height, width), 255, dtype=np.uint8)
         x_left, x_right, y_top, y_bottom = self.translate_coords_to_centre(height, width, sizex = size[0], sizey = size[1])
-        self.maskpoints = [(x_left + crosshair_offset_x), (x_right + crosshair_offset_x), (y_top + crosshair_offset_y), (y_bottom + crosshair_offset_y)]
-        mask[(y_top + crosshair_offset_y):(y_bottom + crosshair_offset_y), (x_left + crosshair_offset_x):(x_right + crosshair_offset_x)] = 0
+        self.maskpoints = [(x_left + deadzone_offset_x), (x_right + deadzone_offset_x), (y_top + deadzone_offset_y), (y_bottom + deadzone_offset_y)]
+        mask[(y_top + deadzone_offset_y):(y_bottom + deadzone_offset_y), (x_left + deadzone_offset_x):(x_right + deadzone_offset_x)] = 0
         return mask
     
-    # TODO: implement this
-    def generate_circular_feature_mask_matrix(self, image: np.ndarray, crosshair_offset_x: int, crosshair_offset_y: int, radius: int):
-        pass
+    def generate_circular_feature_mask_matrix(self, image: np.ndarray, deadzone_offset_x: int, deadzone_offset_y: int, radius: int):
+        h, w, ch = image.shape
+        mask = np.full((h, w), 255, dtype=np.uint8)
+        cv.circle(mask, (int(h/2)+deadzone_offset_x, int(w/2)+deadzone_offset_y), radius, (0,0,0), -1)
+        return mask
 
     def set_initial_frame(self, ground_angle) -> np.ndarray:
         ret, frame = self.feed.read()
@@ -150,13 +156,13 @@ class RpmFromFeed():
             self.mask = cv.line(self.mask, (int(a), int(b)), (int(c), int(d)), self.color[i].tolist(), 2)
             image = cv.circle(image, (int(a), int(b)), 5, self.color[i].tolist(), -1)
 
-        #Draws the boundaries for the crosshair (feature mask)
+        #Draws the boundaries for the deadzone (feature mask)
         red = [0,0,255]
-        fromx, tox, fromy, toy = self.maskpoints
-        cv.circle(self.mask, (fromx,toy), 4, red, -1)
-        cv.circle(self.mask, (fromx,fromy), 4, red, -1)
-        cv.circle(self.mask, (tox,fromy), 4, red, -1)
-        cv.circle(self.mask, (tox,toy), 4, red, -1) 
+        #fromx, tox, fromy, toy = self.maskpoints
+        #cv.circle(self.mask, (fromx,toy), 4, red, -1)
+        #cv.circle(self.mask, (fromx,fromy), 4, red, -1)
+        #cv.circle(self.mask, (tox,fromy), 4, red, -1)
+        #cv.circle(self.mask, (tox,toy), 4, red, -1) 
 
         return (cv.add(self.mask, image))
 

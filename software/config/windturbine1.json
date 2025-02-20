@@ -8,7 +8,7 @@
   "ground_angle": 0,
   "fps": 50,
   "real_rpm": 12,
-  "crosshair_size": [85,85],
-  "crosshair_offset_x": 0,
-  "crosshair_offset_y": 0
+  "deadzone_size": [85,85],
+  "deadzone_offset_x": 0,
+  "deadzone_offset_y": 0
 }

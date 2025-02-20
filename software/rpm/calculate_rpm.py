@@ -3,6 +3,20 @@ import numpy as np
 from . import utils
 
 
+def view_angle_scaling(ground_to_turbine_angle: float, perspective_rotation_angle:float) -> float:
+    # Find the plane normal vector of the turbine
+    nx = math.cos(ground_to_turbine_angle) * math.sin(perspective_rotation_angle)
+    ny = math.cos(ground_to_turbine_angle) * math.cos(perspective_rotation_angle)
+    nz = math.sin(ground_to_turbine_angle)
+
+    turbine_normal = np.array([nx, ny, nz])
+    viewing_angle = np.array([0, 1, 0])
+
+    # Find the scaling factor of the measurements
+    angle_scale = np.dot(turbine_normal, viewing_angle)
+    rpm_scaling_factor = 1 / angle_scale
+    return rpm_scaling_factor
+
 def calculate_frequency(velocity: float, radius: int, fps: float) -> float:
     # velocity is in pixels per frame
     # units: (pixels / frame) * (frames / second) / pixels ) = 1/s = rad/s

@@ -1,5 +1,5 @@
 import cv2 as cv
-from rpm import opticalflow as flow
+from rpm import opticalflow
 from rpm import calculate_rpm as crpm
 from rpm import utils
 import numpy as np
@@ -24,7 +24,7 @@ for i in range(0, args.runs):
     errors = []
 
     #restart the feed for every run
-    feed = flow.RpmFromFeed(**params)
+    feed = opticalflow.RpmFromFeed(**params)
 
     while feed.isActive:
         data, image = feed.get_optical_flow_vectors()
