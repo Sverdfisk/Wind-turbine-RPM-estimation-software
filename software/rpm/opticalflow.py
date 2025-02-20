@@ -5,29 +5,26 @@ from . import utils
 
 class RpmFromFeed():
     def __init__(self, threshold = 10, **kwargs):
-        
+        for key, value in kwargs.items():
+           setattr(self, key, value)
+
         #Video feed settings
         self.feed = cv.VideoCapture(kwargs['target'])
-        self.fps = kwargs['fps']
         self.feed.set(cv.CAP_PROP_FPS, self.fps)
-        self.crop_points = kwargs['crop_points']
 
         # Set image frame parameters
         if ((self.crop_points[0][1] - self.crop_points[0][0]) == (self.crop_points[1][1] - self.crop_points[1][0])):
             self.shape = 'SQUARE'
         else:
             self.shape = 'RECT'
-        self.ground_angle = kwargs['ground_angle']
         self.old_frame = self.set_initial_frame(self.ground_angle)
         self.set_mask_size()
 
         #Algorithm config
         self.st_params = self.set_shi_tomasi_params()
         self.lk_params = self.set_lucas_kanade_params()
-        self.crosshair_size = kwargs['crosshair_size']
         self.set_crosshair_size(self.crosshair_size)
-        crosshair_offset_x, crosshair_offset_y = kwargs['crosshair_offset_x'], kwargs['crosshair_offset_y']
-        self.feature_mask = self.generate_feature_mask_matrix(self.old_frame, crosshair_offset_x, crosshair_offset_y)
+        self.feature_mask = self.generate_feature_mask_matrix(self.old_frame, self.crosshair_offset_x, self.crosshair_offset_y)
 
         #Control config
         self.isActive = True
