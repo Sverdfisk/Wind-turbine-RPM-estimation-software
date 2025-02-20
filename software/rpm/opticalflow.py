@@ -116,7 +116,12 @@ class RpmFromFeed():
     def generate_circular_feature_mask_matrix(self, image: np.ndarray, deadzone_offset_x: int, deadzone_offset_y: int, radius: int):
         h, w, ch = image.shape
         mask = np.full((h, w), 255, dtype=np.uint8)
-        cv.circle(mask, (int(h/2)+deadzone_offset_x, int(w/2)+deadzone_offset_y), radius, (0,0,0), -1)
+
+        radius_y = int(h/2) + deadzone_offset_y
+        radius_x = int(w/2) + deadzone_offset_x
+
+        self.maskpoints = [int(w/2)-radius, int(w/2)+radius, int(h/2)-radius, int(h/2)+radius]
+        cv.circle(mask, (radius_x, radius_y), radius, (0,0,0), -1)
         return mask
 
     def set_initial_frame(self, ground_angle) -> np.ndarray:
@@ -156,13 +161,13 @@ class RpmFromFeed():
             self.mask = cv.line(self.mask, (int(a), int(b)), (int(c), int(d)), self.color[i].tolist(), 2)
             image = cv.circle(image, (int(a), int(b)), 5, self.color[i].tolist(), -1)
 
-        #Draws the boundaries for the deadzone (feature mask)
+        #Draws the boundaries for the deadzone (feature mask) if it's square
         red = [0,0,255]
-        #fromx, tox, fromy, toy = self.maskpoints
-        #cv.circle(self.mask, (fromx,toy), 4, red, -1)
-        #cv.circle(self.mask, (fromx,fromy), 4, red, -1)
-        #cv.circle(self.mask, (tox,fromy), 4, red, -1)
-        #cv.circle(self.mask, (tox,toy), 4, red, -1) 
+        fromx, tox, fromy, toy = self.maskpoints
+        cv.circle(self.mask, (fromx,toy), 4, red, -1)
+        cv.circle(self.mask, (fromx,fromy), 4, red, -1)
+        cv.circle(self.mask, (tox,fromy), 4, red, -1)
+        cv.circle(self.mask, (tox,toy), 4, red, -1) 
 
         return (cv.add(self.mask, image))
 
