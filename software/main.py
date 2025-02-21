@@ -50,7 +50,8 @@ for i in range(0, args.runs):
 
     if args.log:
         utils.print_statistics(rpms, errors, real_rpm=params["real_rpm"])
-        utils.write_output(params["id"], run_number, rpms, params["real_rpm"])
+        for i in rpms:
+            utils.write_output_no_average(round(i, 2))
     run_number += 1
 
 cv.destroyAllWindows()
