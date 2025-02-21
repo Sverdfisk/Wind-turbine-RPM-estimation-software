@@ -23,7 +23,7 @@ for i in range(0, args.runs):
     errors = []
 
     #restart the feed for every run
-    feed = opticalflow.RpmFromFeed(**params)
+    feed = opticalflow.RpmFromFeed(threshold = 30, **params)
 
     while feed.isActive:
         data, image = feed.get_optical_flow_vectors()
@@ -50,7 +50,7 @@ for i in range(0, args.runs):
     if args.log:
         utils.print_statistics(rpms, errors, real_rpm=params["real_rpm"])
         for i in rpms:
-            utils.write_output_no_average(round(i, 2))
+            utils.write_output_no_average(round(i, 2), params["id"])
     run_number += 1
 
 cv.destroyAllWindows()
