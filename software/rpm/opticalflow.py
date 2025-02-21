@@ -17,8 +17,9 @@ class RpmFromFeed():
             self.shape = 'SQUARE'
         else:
             self.shape = 'RECT'
-        self.old_frame = self.set_initial_frame(self.ground_angle)
+        self.old_frame = self._set_initial_frame(self.ground_angle)
         self.set_mask_size()
+        self.radius = int(math.sqrt(self.radius_x*self.radius_y))
 
         #Algorithm config
         self.st_params = self.set_shi_tomasi_params()
@@ -63,7 +64,7 @@ class RpmFromFeed():
 
         self.translation_matrix = cv.getPerspectiveTransform(pts_src, pts_dst)
 
-    def correct_frame_perspective(self, frame):
+    def _correct_frame_perspective(self, frame):
         warped = cv.warpPerspective(frame, self.translation_matrix, (self.h, self.h))
         return warped
 
@@ -124,7 +125,7 @@ class RpmFromFeed():
         cv.circle(mask, (radius_x, radius_y), radius, (0,0,0), -1)
         return mask
 
-    def set_initial_frame(self, ground_angle) -> np.ndarray:
+    def _set_initial_frame(self, ground_angle) -> np.ndarray:
         ret, frame = self.feed.read()
         if (self.crop_points is not None) and ret:
             frame = frame[self.crop_points[0][0]:self.crop_points[0][1], 
@@ -135,7 +136,7 @@ class RpmFromFeed():
         self.isActive = ret
         
         if self.shape == 'RECT':
-            frame = self.correct_frame_perspective(frame)
+            frame = self._correct_frame_perspective(frame)
         return frame
 
     def get_frame(self) -> np.ndarray:
@@ -147,9 +148,13 @@ class RpmFromFeed():
                           self.crop_points[1][0]:self.crop_points[1][1]]
         
         if self.shape == 'RECT' and ret:
-            frame = self.correct_frame_perspective(frame)
+            frame = self._correct_frame_perspective(frame)
 
         return frame if ret else np.zeros_like(frame)
+
+    def calculate_rpm_from_vectors(self, motion_vectors):
+        radius_max = self.radius_y if (self.radius_y > self.radius_x) else self.radius_x
+        return crpm.get_rpm(motion_vectors, radius_max, self.fps)
 
     def draw_optical_flow(self, image: np.ndarray, old_points: list, new_points: list, overwrite = False) -> np.ndarray:
         if overwrite:

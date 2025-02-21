@@ -1,6 +1,5 @@
 import cv2 as cv
 from rpm import opticalflow
-from rpm import calculate_rpm as crpm
 from rpm import utils
 import numpy as np
 import argparse
@@ -34,7 +33,7 @@ for i in range(0, args.runs):
         # The data indices have pixel positions, the total movement in one frame is new_pos - old_pos
         motion_vectors = (data[0]-data[1]) 
         scaled_vectors = motion_vectors * feed.rpm_scaling_factor
-        rpm = crpm.get_rpm(motion_vectors, params["radius_max"], params["fps"])
+        rpm = feed.calculate_rpm_from_vectors(scaled_vectors)
 
         #Ensure that dead frames do not get counted 
         if rpm is not None:
