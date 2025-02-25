@@ -1,0 +1,17 @@
+{
+  "id": 0,
+  "target": "/dev/video2",
+  "crop_points": null,
+  "radius_x": 320,
+  "radius_y": 240,
+  "radius_max": 320,
+  "ground_angle": 0,
+  "fps": 30,
+  "real_rpm": null,
+  "deadzone_size": [
+    85,
+    85
+  ],
+  "deadzone_offset_x": 0,
+  "deadzone_offset_y": 0
+}
