@@ -59,7 +59,6 @@ class RpmFromFeed:
         hypotenuse = self.h if (self.h > self.w) else self.w
         adjacent = self.w if (self.h > self.w) else self.h
         perspective_rotation_angle = math.acos(adjacent / hypotenuse)
-
         self.rpm_scaling_factor = crpm.view_angle_scaling(
             ground_angle, perspective_rotation_angle
         )
@@ -150,6 +149,13 @@ class RpmFromFeed:
         ] = 0
         return mask
 
+    def set_radius_parameters(self) -> None:
+        self.radius_x = int(self.w / 2)
+        self.radius_y = int(self.h / 2)
+        self.radius_max = (
+            self.radius_x if (self.radius_x > self.radius_y) else self.radius_y
+        )
+
     def generate_circular_feature_mask_matrix(
         self,
         image: np.ndarray,
@@ -182,6 +188,7 @@ class RpmFromFeed:
 
         self.h, self.w, self.ch = frame.shape
         self.set_perspective_parameters(ground_angle)
+        self.set_radius_parameters()
         self.isActive = ret
 
         if self.shape == "RECT":
@@ -204,9 +211,7 @@ class RpmFromFeed:
         return frame if ret else np.zeros_like(frame)
 
     def calculate_rpm_from_vectors(self, motion_vectors):
-        radius_max = self.radius_y if (
-            self.radius_y > self.radius_x) else self.radius_x
-        return crpm.get_rpm(motion_vectors, radius_max, self.fps)
+        return crpm.get_rpm(motion_vectors, self.radius_max, self.fps)
 
     def draw_optical_flow(
         self, image: np.ndarray, old_points: list, new_points: list, overwrite=False

@@ -1,14 +1,23 @@
 {
   "id": 3,
   "target": "/home/ken/projects/windturbine/software/assets/windturbine3_f30_r24.gif",
-  "crop_points": [[0,120],[40,160]],
-  "radius_x": 60,
-  "radius_y": 60,
-  "radius_max": 60,
+  "crop_points": [
+    [
+      0,
+      120
+    ],
+    [
+      40,
+      160
+    ]
+  ],
   "ground_angle": 0.21,
   "fps": 30,
   "real_rpm": 24,
-  "deadzone_size": [50,50],
+  "deadzone_size": [
+    50,
+    50
+  ],
   "deadzone_offset_x": 0,
   "deadzone_offset_y": 0
 }

@@ -1,14 +1,23 @@
 {
   "id": 2,
   "target": "/home/ken/projects/windturbine/software/assets/windturbine2_f10_r14.gif",
-  "crop_points": [[0,260],[165,430]],
-  "radius_y": 130,
-  "radius_x": 132.5,
-  "radius_max": 132.5,
+  "crop_points": [
+    [
+      0,
+      260
+    ],
+    [
+      165,
+      430
+    ]
+  ],
   "ground_angle": 0,
   "fps": 10,
   "real_rpm": 14,
-  "deadzone_size": [85,85],
+  "deadzone_size": [
+    85,
+    85
+  ],
   "deadzone_offset_x": 0,
   "deadzone_offset_y": 0
 }

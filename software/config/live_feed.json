@@ -1,11 +1,17 @@
 {
   "id": 0,
   "target": "/dev/video2",
-  "crop_points": null,
-  "radius_x": 320,
-  "radius_y": 240,
-  "radius_max": 320,
-  "ground_angle": 0,
+  "crop_points": [
+    [
+      200,
+      450
+    ],
+    [
+      100,
+      400
+    ]
+  ],
+  "ground_angle": 0.75,
   "fps": 30,
   "real_rpm": null,
   "deadzone_size": [
