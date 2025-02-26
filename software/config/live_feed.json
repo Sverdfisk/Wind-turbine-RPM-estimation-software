@@ -21,5 +21,6 @@
   "deadzone_offset_x": 0,
   "deadzone_offset_y": -10,
   "pixel_threshold": 10,
-  "deadzone_shape": "circle"
+  "deadzone_shape": "circle",
+  "mode": "bpm"
 }
