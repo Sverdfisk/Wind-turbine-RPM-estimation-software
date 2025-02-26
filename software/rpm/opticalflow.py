@@ -1,28 +1,17 @@
 import numpy as np
 import cv2 as cv
 import math
-from . import calculate_rpm as crpm
+import calculate_rpm as crpm
+from feed.feed import RpmFromFeed
 
 
-class RpmFromFeed:
+class OpticalFlow(RpmFromFeed):
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-        # Video feed settings
-        self.feed = cv.VideoCapture(kwargs["target"])
-        self.feed.set(cv.CAP_PROP_FPS, self.fps)
-
-        # Set image frame parameters
-        if self.crop_points is not None and (
-            self.crop_points[0][1] - self.crop_points[0][0]
-        ) == (self.crop_points[1][1] - self.crop_points[1][0]):
-            self.shape = "SQUARE"
-        else:
-            self.shape = "RECT"
-        self.old_frame = self._set_initial_frame(self.ground_angle)
-        self.set_mask_size()
-        self.radius = int(math.sqrt(self.radius_x * self.radius_y))
+        _set_initial_frame(self.ground_angle)
+        self._set_mask_size()
 
         # Algorithm config
         self.st_params = self.set_shi_tomasi_params()
@@ -43,11 +32,32 @@ class RpmFromFeed:
                 self.old_frame, self.deadzone_offset_x, self.deadzone_offset_y
             )
 
-        # Control config
-        self.isActive = True
-
         # Color for drawing purposes
         self.color = np.random.randint(0, 255, (100, 3))
+
+    def get_frame(self) -> np.ndarray:
+        ret, frame = self.feed.read()
+        self.isActive = ret
+
+        if self.crop_points is not None and self.isActive:
+            self.prev_frame = frame[self.xrange, self.yrange]
+
+        if self.shape == "RECT" and ret:
+            frame = self._correct_frame_perspective(frame)
+
+        return frame
+
+    def _set_initial_frame(self, ground_angle) -> np.ndarray:
+        ret, frame = self.feed.read()
+        self.isActive = ret
+
+        self.set_perspective_parameters(ground_angle)
+        self.set_radius_parameters()
+        if feed.shape == "RECT" and self.isActive:
+            self.prev_frame = self._correct_frame_perspective(self.prev_frame)
+
+    def _set_mask_size(self):
+        self.mask = np.zeros_like(self.old_frame)
 
     def set_perspective_parameters(self, ground_angle):
         # Do a whole lot of trig to correct for persepective
@@ -89,9 +99,6 @@ class RpmFromFeed:
             self.deadzone_size_x, self.deadzone_size_y = size
         else:
             pass
-
-    def set_mask_size(self):
-        self.mask = np.zeros_like(self.old_frame)
 
     def set_shi_tomasi_params(
         self, maxCorners=100, qualityLevel=0.2, minDistance=9, blockSize=3
@@ -144,13 +151,6 @@ class RpmFromFeed:
         ] = 0
         return mask
 
-    def set_radius_parameters(self) -> None:
-        self.radius_x = int(self.w / 2)
-        self.radius_y = int(self.h / 2)
-        self.radius_max = (
-            self.radius_x if (self.radius_x > self.radius_y) else self.radius_y
-        )
-
     def generate_circular_feature_mask_matrix(
         self,
         image: np.ndarray,
@@ -173,40 +173,8 @@ class RpmFromFeed:
         cv.circle(mask, (radius_x, radius_y), radius, (0, 0, 0), -1)
         return mask
 
-    def _set_initial_frame(self, ground_angle) -> np.ndarray:
-        ret, frame = self.feed.read()
-        if (self.crop_points is not None) and ret:
-            frame = frame[
-                self.crop_points[0][0]: self.crop_points[0][1],
-                self.crop_points[1][0]: self.crop_points[1][1],
-            ]
-
-        self.h, self.w, self.ch = frame.shape
-        self.set_perspective_parameters(ground_angle)
-        self.set_radius_parameters()
-        self.isActive = ret
-
-        if self.shape == "RECT":
-            frame = self._correct_frame_perspective(frame)
-        return frame
-
-    def get_frame(self) -> np.ndarray:
-        ret, frame = self.feed.read()
-        self.isActive = ret
-
-        if (self.crop_points is not None) and ret:
-            frame = frame[
-                self.crop_points[0][0]: self.crop_points[0][1],
-                self.crop_points[1][0]: self.crop_points[1][1],
-            ]
-
-        if self.shape == "RECT" and ret:
-            frame = self._correct_frame_perspective(frame)
-
-        return frame if ret else np.zeros_like(frame)
-
     def calculate_rpm_from_vectors(self, motion_vectors):
-        return crpm.get_rpm(motion_vectors, self.radius_max, self.fps)
+        return crpm.get_rpm_from_flow_vectors(motion_vectors, self.radius_max, self.fps)
 
     def draw_optical_flow(
         self, image: np.ndarray, old_points: list, new_points: list, overwrite=False
