@@ -19,5 +19,7 @@
     85
   ],
   "deadzone_offset_x": 0,
-  "deadzone_offset_y": 0
+  "deadzone_offset_y": 0,
+  "pixel_threshold": 10,
+  "deadzone_shape": "circle"
 }

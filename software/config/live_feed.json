@@ -3,21 +3,23 @@
   "target": "/dev/video2",
   "crop_points": [
     [
-      200,
-      450
+      0,
+      320
     ],
     [
       100,
-      400
+      520
     ]
   ],
-  "ground_angle": 0.75,
+  "ground_angle": 0.76,
   "fps": 30,
-  "real_rpm": null,
+  "real_rpm": 25,
   "deadzone_size": [
-    85,
-    85
+    90,
+    90
   ],
   "deadzone_offset_x": 0,
-  "deadzone_offset_y": 0
+  "deadzone_offset_y": -10,
+  "pixel_threshold": 10,
+  "deadzone_shape": "circle"
 }

@@ -5,7 +5,7 @@ from . import calculate_rpm as crpm
 
 
 class RpmFromFeed:
-    def __init__(self, threshold=10, mask="circle", **kwargs):
+    def __init__(self, **kwargs):
         for key, value in kwargs.items():
             setattr(self, key, value)
 
@@ -28,7 +28,7 @@ class RpmFromFeed:
         self.st_params = self.set_shi_tomasi_params()
         self.lk_params = self.set_lucas_kanade_params()
         self.set_deadzone_size(self.deadzone_size)
-        if mask == "circle":
+        if self.deadzone_shape == "circle":
             deadzone_radius = int(
                 math.sqrt(self.deadzone_size[0] * self.deadzone_size[1])
             )
@@ -45,11 +45,6 @@ class RpmFromFeed:
 
         # Control config
         self.isActive = True
-
-        # Sets tracking point threshold, i.e acceptable tracking distance. A reasonable range is 0 to about 60  (10 is strict).
-        # lower threshold -> better confidence is needed to set a correlation as "successful".
-        # higher threshold -> More options for pixels that could be the one we track. Noisy, but more data.
-        self.threshold = threshold
 
         # Color for drawing purposes
         self.color = np.random.randint(0, 255, (100, 3))
@@ -99,7 +94,7 @@ class RpmFromFeed:
         self.mask = np.zeros_like(self.old_frame)
 
     def set_shi_tomasi_params(
-        self, maxCorners=100, qualityLevel=0.05, minDistance=9, blockSize=3
+        self, maxCorners=100, qualityLevel=0.2, minDistance=9, blockSize=3
     ) -> dict:
         params = dict(
             maxCorners=maxCorners,
@@ -257,8 +252,8 @@ class RpmFromFeed:
 
         # Select good tracking points based on successful tracking
         if p1 is not None:
-            good_new = p1[(st == 1) & (abs(err) < self.threshold)]
-            good_old = p0[(st == 1) & (abs(err) < self.threshold)]
+            good_new = p1[(st == 1) & (abs(err) < self.pixel_threshold)]
+            good_old = p0[(st == 1) & (abs(err) < self.pixel_threshold)]
 
         # Set the new frame to be considered "old" for next call
         self.old_frame = new_frame

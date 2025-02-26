@@ -23,7 +23,7 @@ def main(feed, params):
         motion_vectors = data[0] - data[1]
         scaled_vectors = motion_vectors * feed.rpm_scaling_factor
         rpm = feed.calculate_rpm_from_vectors(scaled_vectors)
-        assert rpm is not None
+
         # Ensure that dead frames do not get counted
         if rpm is not None:
             rpms.append(rpm)
