@@ -115,14 +115,14 @@ class OpticalFlow(feed.RpmFromFeed):
         params = dict(winSize=winSize, maxLevel=maxLevel, criteria=criteria)
         return params
 
-    def translate_coords_to_centre(
+    def translate_coords_to_center(
         self, image_height: int, image_width: int, sizex: int = 0, sizey: int = 0
     ) -> list:
-        centre = [image_height // 2, image_width // 2]
-        x_left = centre[1] - sizex
-        x_right = centre[1] + sizex
-        y_top = centre[0] - sizey
-        y_bottom = centre[0] + sizey
+        center = self.get_center_pixel()
+        x_left = center[1] - sizex
+        x_right = center[1] + sizex
+        y_top = center[0] - sizey
+        y_bottom = center[0] + sizey
         return [x_left, x_right, y_top, y_bottom]
 
     def generate_feature_mask_matrix(
@@ -131,7 +131,7 @@ class OpticalFlow(feed.RpmFromFeed):
         size = [self.deadzone_size_x, self.deadzone_size_y]
         height, width, channels = image.shape
         mask = np.full((height, width), 255, dtype=np.uint8)
-        x_left, x_right, y_top, y_bottom = self.translate_coords_to_centre(
+        x_left, x_right, y_top, y_bottom = self.translate_coords_to_center(
             height, width, sizex=size[0], sizey=size[1]
         )
         self.maskpoints = [

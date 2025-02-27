@@ -7,7 +7,7 @@ class Feed:
         self._set_base_config(kwargs["target"], kwargs["fps"])
         self.crop_points = kwargs["crop_points"]
 
-    def _set_base_config(self, target, fps):
+    def _set_base_config(self, target, fps) -> None:
         self.target = target
         self.fps = fps
         self.video = cv.VideoCapture(self.target)
@@ -29,7 +29,7 @@ class RpmFromFeed(Feed):
         super().__init__(**kwargs)
         self._set_config_parameters(kwargs["crop_points"])
 
-    def _set_config_parameters(self, crop_points):
+    def _set_config_parameters(self, crop_points) -> None:
         self.crop_points = crop_points
 
         self.radius_x = self.w // 2
@@ -43,3 +43,7 @@ class RpmFromFeed(Feed):
             self.shape = "SQUARE"
         else:
             self.shape = "RECT"
+
+    def get_center_pixel(self) -> tuple:
+        # We can just use the radius here to find the middle of the image
+        return (self.radius_y, self.radius_x)
