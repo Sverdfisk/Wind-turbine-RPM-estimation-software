@@ -14,13 +14,13 @@ class Feed:
         self.video.set(cv.CAP_PROP_FPS, self.fps)
         self.h = self.crop_points[0][1] - self.crop_points[0][0]
         self.w = self.crop_points[1][1] - self.crop_points[1][0]
-        self.xrange = slice(self.crop_points[0][0], self.crop_points[0][1])
-        self.yrange = slice(self.crop_points[1][0], self.crop_points[1][1])
+        self.yrange = slice(self.crop_points[0][0], self.crop_points[0][1])
+        self.xrange = slice(self.crop_points[1][0], self.crop_points[1][1])
 
     def get_frame(self) -> np.ndarray:
         ret, frame = self.video.read()
         if self.crop_points is not None and ret:
-            frame = frame[self.xrange, self.yrange]
+            frame = frame[self.yrange, self.xrange]
         return frame
 
 

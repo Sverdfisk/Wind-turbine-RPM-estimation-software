@@ -40,7 +40,7 @@ class OpticalFlow(feed.RpmFromFeed):
         self.isActive = ret
 
         if self.crop_points is not None and self.isActive:
-            self.prev_frame = frame[self.xrange, self.yrange]
+            frame = frame[self.yrange, self.xrange]
 
         if self.shape == "RECT" and ret:
             frame = self._correct_frame_perspective(frame)
@@ -48,12 +48,8 @@ class OpticalFlow(feed.RpmFromFeed):
         return frame
 
     def _set_initial_frame(self, ground_angle):
-        ret, frame = self.video.read()
-        self.isActive = ret
-        self.prev_frame = frame
         self.set_perspective_parameters(ground_angle)
-        if self.shape == "RECT" and self.isActive:
-            self.prev_frame = self._correct_frame_perspective(self.prev_frame)
+        self.prev_frame = self.get_frame()
 
     def _set_mask_size(self):
         self.mask = np.zeros_like(self.prev_frame)

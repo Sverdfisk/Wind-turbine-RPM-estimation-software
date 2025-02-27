@@ -59,7 +59,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     params = utils.parse_json(args.cfg)
-    print("yeah")
     # restart the feed for every run
     feed = of.OpticalFlow(**params)
     rpms, errors = main(feed, params)
