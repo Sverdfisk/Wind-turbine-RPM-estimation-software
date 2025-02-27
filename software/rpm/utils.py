@@ -1,5 +1,4 @@
 import numpy as np
-import math
 import json
 
 
@@ -60,5 +59,6 @@ def write_output(
     with open(f"runs/run_turbine{str(turbine_id)}.csv", "a") as output_file:
         output_file.write(
             f"{run_number}, {np.average(rpms)}, {
-                calculate_error_percentage(np.average(rpms), real_rpm)}\n"
+                calculate_error_percentage(np.average(rpms), real_rpm)
+            }\n"
         )

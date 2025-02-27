@@ -1,16 +1,14 @@
 import math
 import numpy as np
-import utils
+from . import utils
 
 
 def view_angle_scaling(
     ground_to_turbine_angle: float, perspective_rotation_angle: float
 ) -> float:
     # Find the plane normal vector of the turbine
-    nx = math.cos(ground_to_turbine_angle) * \
-        math.sin(perspective_rotation_angle)
-    ny = math.cos(ground_to_turbine_angle) * \
-        math.cos(perspective_rotation_angle)
+    nx = math.cos(ground_to_turbine_angle) * math.sin(perspective_rotation_angle)
+    ny = math.cos(ground_to_turbine_angle) * math.cos(perspective_rotation_angle)
     nz = math.sin(ground_to_turbine_angle)
 
     turbine_normal = np.array([nx, ny, nz])

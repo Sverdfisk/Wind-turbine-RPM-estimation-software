@@ -1,5 +1,5 @@
 import cv2 as cv
-from rpm import opticalflow
+from rpm import opticalflow as of
 from rpm import utils
 import numpy as np
 import argparse
@@ -59,9 +59,9 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     params = utils.parse_json(args.cfg)
-
+    print("yeah")
     # restart the feed for every run
-    feed = opticalflow.RpmFromFeed(**params)
+    feed = of.OpticalFlow(**params)
     rpms, errors = main(feed, params)
 
     cv.destroyAllWindows()
