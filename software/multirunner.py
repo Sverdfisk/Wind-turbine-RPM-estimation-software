@@ -29,8 +29,8 @@ for i in range(args.runs):
     errors = []
 
     # restart the feed for every run
-    feed = opticalflow.RpmFromFeed(**params)
-    rpms, errors = main(feed, rpms, errors, params)
+    feed = opticalflow.OpticalFlow(**params)
+    rpms, errors = main(feed, params)
     if args.log:
         utils.print_statistics(rpms, errors, real_rpm=params["real_rpm"])
         utils.write_output(params["id"], run_number, rpms, params["real_rpm"])
