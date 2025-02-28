@@ -4,6 +4,24 @@ from feed import feed
 import math
 
 
+class BoundingBox:
+    def __init__(self, center, side_length, region):
+        self.center = center
+        self.side_length = side_length
+
+        #  Region in OpenCV crop format
+        self.region = region
+        #  size from center or "radius"
+        self.size = self.side_length / 2
+
+    def area(self):
+        return self.side_length * self.side_length
+
+    @staticmethod
+    def find_region_in_frame(frame: np.ndarray) -> tuple[slice, slice]:
+        pass
+
+
 class BpmCascade(feed.RpmFromFeed):
     def __init__(self, **kwargs):
         # Assume self.quadrant is set here to define quadrant
@@ -51,12 +69,18 @@ class BpmCascade(feed.RpmFromFeed):
         hyp_length = math.sqrt((ylen**2) + (xlen**2))
         return hyp_length
 
-    def draw_opaque_region(self, base_frame: np.ndarray, draw_region: tuple[slice, slice], w1: float, w2: float):
-        yrange, xrange = range
+    def draw_opaque_region(
+        self,
+        base_frame: np.ndarray,
+        draw_region: tuple[slice, slice],
+        w1: float,
+        w2: float,
+    ):
+        yrange, xrange = draw_region
 
         subregion = base_frame[yrange, xrange]
         white_rect = np.ones(subregion.shape, dtype=np.uint8) * 255
-        res = cv2.addWeighted(subregion, w1, white_rect, w2, 1.0)
+        res = cv.addWeighted(subregion, w1, white_rect, w2, 1.0)
 
         base_frame[yrange, xrange] = res
         return base_frame
@@ -67,4 +91,15 @@ class BpmCascade(feed.RpmFromFeed):
             base_frame, quadrant_range, 0.7, 0.3)
         return marked_quadrant
 
-    def draw_marker_box(self, base_frame: np.ndarray, center: tuple[int, int], size: int) -> np.ndarray:
+    def draw_marker_box(
+        self, base_frame: np.ndarray, center: tuple[int, int], size: int
+    ):
+        pass
+
+    def create_bounding_box(self, size, center):
+        pass
+
+    def cascade_bounding_boxes(self, num_boxes):
+        boxes = []
+        for i in range(num_boxes):
+            boxes.append(self.create_bounding_box(None, None))

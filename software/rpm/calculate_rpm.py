@@ -7,8 +7,10 @@ def view_angle_scaling(
     ground_to_turbine_angle: float, perspective_rotation_angle: float
 ) -> float:
     # Find the plane normal vector of the turbine
-    nx = math.cos(ground_to_turbine_angle) * math.sin(perspective_rotation_angle)
-    ny = math.cos(ground_to_turbine_angle) * math.cos(perspective_rotation_angle)
+    nx = math.cos(ground_to_turbine_angle) * \
+        math.sin(perspective_rotation_angle)
+    ny = math.cos(ground_to_turbine_angle) * \
+        math.cos(perspective_rotation_angle)
     nz = math.sin(ground_to_turbine_angle)
 
     turbine_normal = np.array([nx, ny, nz])
@@ -28,7 +30,7 @@ def calculate_frequency(velocity: float, radius: int, fps: float) -> float:
     return freq
 
 
-def filter_magnitudes(magnitudes: list) -> list:
+def filter_magnitudes(magnitudes: list[float]) -> list[float]:
     magnitudes = np.array(magnitudes)
     std_dev = np.std(magnitudes)
     mean = np.mean(magnitudes)
