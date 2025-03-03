@@ -1,6 +1,6 @@
 import cv2 as cv
 import numpy as np
-from feed import feed
+from .feed import feed
 import math
 
 
@@ -18,8 +18,24 @@ class BoundingBox:
         return self.side_length * self.side_length
 
     @staticmethod
-    def find_region_in_frame(frame: np.ndarray) -> tuple[slice, slice]:
-        pass
+    def region_from_center_and_size(
+        center: tuple[int, int], size: int
+    ) -> tuple[slice, slice]:
+        yrange = slice(center[1] - size, center[1] + size)
+        xrange = slice(center[0] - size, center[0] + size)
+        return (yrange, xrange)
+
+    @staticmethod
+    def center_and_size_from_region(
+        region: tuple[slice, slice],
+    ) -> tuple[tuple[int, int], int]:
+        yrange = region[0]
+        xrange = region[1]
+        sizey = (yrange.stop - yrange.start) // 2
+        sizex = (xrange.stop - yrange.start) // 2
+        assert sizey == sizex  # Force square size
+        center = ((xrange.start + sizex), (yrange.start + sizey))
+        return (center, sizex)
 
 
 class BpmCascade(feed.RpmFromFeed):
@@ -28,11 +44,12 @@ class BpmCascade(feed.RpmFromFeed):
         super().__init__(**kwargs)
         for key, value in kwargs.items():
             setattr(self, key, value)
-
+        self.quadrant = 1
         self.center = self.get_center_pixel()
         self.corner = self._get_quadrant_corner_pixel(self.quadrant)
         self.hypotenuse_length = self._get_hypotenuse_length()
         self.subsection = self._get_quadrant_subsection_slice()
+        self.bounds = []
 
     # Uses mathematical quadrants, not OpenCV indexing
     def _get_quadrant_corner_pixel(self, quadrant: int) -> tuple[int, int]:
@@ -75,7 +92,7 @@ class BpmCascade(feed.RpmFromFeed):
         draw_region: tuple[slice, slice],
         w1: float,
         w2: float,
-    ):
+    ) -> np.ndarray:
         yrange, xrange = draw_region
 
         subregion = base_frame[yrange, xrange]
@@ -93,13 +110,12 @@ class BpmCascade(feed.RpmFromFeed):
 
     def draw_marker_box(
         self, base_frame: np.ndarray, center: tuple[int, int], size: int
-    ):
-        pass
+    ) -> np.ndarray:
+        yrange = slice(center[1] - size, center[1] + size)
+        xrange = slice(center[0] - size, center[0] + size)
+        new_frame = self.draw_opaque_region(
+            base_frame, (yrange, xrange), 0.7, 0.3)
+        return new_frame
 
-    def create_bounding_box(self, size, center):
-        pass
-
-    def cascade_bounding_boxes(self, num_boxes):
-        boxes = []
-        for i in range(num_boxes):
-            boxes.append(self.create_bounding_box(None, None))
+    def cascade_bounding_boxes(self, num_boxes: int) -> None:
+        self.bounds = [BoundingBox(None, None, None) for _ in range(num_boxes)]

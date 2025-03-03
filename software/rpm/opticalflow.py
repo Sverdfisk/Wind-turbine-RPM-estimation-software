@@ -2,7 +2,7 @@ import numpy as np
 import cv2 as cv
 import math
 from . import calculate_rpm as crpm
-from rpm.feed import feed
+from .feed import feed
 
 
 class OpticalFlow(feed.RpmFromFeed):
@@ -85,8 +85,7 @@ class OpticalFlow(feed.RpmFromFeed):
         self.translation_matrix = cv.getPerspectiveTransform(pts_src, pts_dst)
 
     def _correct_frame_perspective(self, frame):
-        warped = cv.warpPerspective(
-            frame, self.translation_matrix, (self.h, self.h))
+        warped = cv.warpPerspective(frame, self.translation_matrix, (self.h, self.h))
         return warped
 
     def set_deadzone_size(self, size):
@@ -141,8 +140,8 @@ class OpticalFlow(feed.RpmFromFeed):
             (y_bottom + deadzone_offset_y),
         ]
         mask[
-            (y_top + deadzone_offset_y): (y_bottom + deadzone_offset_y),
-            (x_left + deadzone_offset_x): (x_right + deadzone_offset_x),
+            (y_top + deadzone_offset_y) : (y_bottom + deadzone_offset_y),
+            (x_left + deadzone_offset_x) : (x_right + deadzone_offset_x),
         ] = 0
         return mask
 
@@ -181,11 +180,9 @@ class OpticalFlow(feed.RpmFromFeed):
             a, b = new.ravel()
             c, d = old.ravel()
             self.mask = cv.line(
-                self.mask, (int(a), int(b)), (int(c), int(d)
-                                              ), self.color[i].tolist(), 2
+                self.mask, (int(a), int(b)), (int(c), int(d)), self.color[i].tolist(), 2
             )
-            image = cv.circle(image, (int(a), int(b)), 5,
-                              self.color[i].tolist(), -1)
+            image = cv.circle(image, (int(a), int(b)), 5, self.color[i].tolist(), -1)
 
         # Draws the boundaries for the deadzone (feature mask) if it's square
         red = [0, 0, 255]
