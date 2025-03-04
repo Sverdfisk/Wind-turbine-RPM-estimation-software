@@ -5,14 +5,14 @@ import math
 
 
 class BoundingBox:
-    def __init__(self, center, side_length, region):
+    def __init__(self, center, size, region):
         self.center = center
-        self.side_length = side_length
+        self.size = size
 
         #  Region in OpenCV crop format
         self.region = region
         #  size from center or "radius"
-        self.size = self.side_length / 2
+        self.side_length = self.size * 2
 
     def area(self):
         return self.side_length * self.side_length
@@ -83,7 +83,7 @@ class BpmCascade(feed.RpmFromFeed):
         self.corner = self._get_quadrant_corner_pixel(self.quadrant)
         self.hypotenuse_length = self._get_hypotenuse_length()
         self.quadrant_subsection = self._get_quadrant_subsection_slice()
-        self.bounds = self.cascade_bounding_boxes(None)
+        self.bounds = self.cascade_bounding_boxes(1, 5)
         self.draw = Draw(self)
 
     # Uses mathematical quadrants, not OpenCV indexing
@@ -121,10 +121,16 @@ class BpmCascade(feed.RpmFromFeed):
         hyp_length = math.sqrt((ylen**2) + (xlen**2))
         return hyp_length
 
-    def boxes_in_radius(box_size: int) -> int:
+    def boxes_in_radius(self, box_size: int) -> int:
         box_diagonal = round(box_size * math.sqrt(2))
-        return math.floor(self.hypotenuse_length / box_diagonal)
+        num_boxes = math.floor(self.hypotenuse_length / box_diagonal)
+        return num_boxes
 
-    def cascade_bounding_boxes(self, num_boxes: int) -> list[BoundingBox]:
-        bounds = [BoundingBox(None, None, None) for _ in range(num_boxes)]
+    def cascade_bounding_boxes(self, num_boxes: int, box_size) -> list[BoundingBox]:
+        box_center = tuple(coord + box_size for coord in self.center_of_frame)
+        bounds = BoundingBox(
+            box_center,
+            box_size,
+            BoundingBox.region_from_center_and_size(box_center, box_size),
+        )
         return bounds
