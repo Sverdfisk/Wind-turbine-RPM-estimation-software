@@ -22,5 +22,6 @@
   "deadzone_offset_y": 30,
   "pixel_threshold": 10,
   "deadzone_shape": "circle",
-  "mode": "bpm"
+  "mode": "bpm",
+  "quadrant": 1
 }
