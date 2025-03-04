@@ -59,10 +59,14 @@ def main(feed, mode, params):
     elif mode == "bpm":
         _ = feed.get_frame()
         while True:
+            frame = feed.get_frame()
+
             if feed.isActive:
-                frame = feed.get_frame()
-                marked_frame = feed.draw.draw_active_quadrant(frame)
+                marked_frame = feed.draw.active_quadrant(frame, 0.6, 0.4)
                 # feed.doBoxStuff(numboxes, size)
+                bounds = feed.cascade_bounding_boxes(6, 10)
+                for i in bounds:
+                    frame = feed.draw.bounding_box(frame, i, 0.2, 0.8)
                 # This MUST be called to refresh frames.
                 cv.imshow("Image feed", marked_frame)
                 k = cv.waitKey(30) & 0xFF

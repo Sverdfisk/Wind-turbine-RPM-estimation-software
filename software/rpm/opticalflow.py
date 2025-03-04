@@ -131,7 +131,7 @@ class OpticalFlow(feed.RpmFromFeed):
         height, width, channels = image.shape
         mask = np.full((height, width), 255, dtype=np.uint8)
         x_left, x_right, y_top, y_bottom = self.translate_coords_to_center(
-            height, width, sizex=size[0], sizey=size[1]
+            height, width, *size
         )
         self.maskpoints = [
             (x_left + deadzone_offset_x),
