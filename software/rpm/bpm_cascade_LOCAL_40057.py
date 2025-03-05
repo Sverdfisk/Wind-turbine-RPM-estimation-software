@@ -13,10 +13,7 @@ class BoundingBox:
         self.region = region
         #  size from center or "radius"
         self.side_length = self.size * 2
-<<<<<<< HEAD
         self.draw = Draw(self)
-=======
->>>>>>> c9d95ca333c2c4e9dc6782fb729bbcd43cf731d8
 
     def area(self):
         return self.side_length * self.side_length
@@ -105,10 +102,6 @@ class BpmCascade(feed.RpmFromFeed):
         self.corner = self._get_quadrant_corner_pixel(self.quadrant)
         self.hypotenuse_length = self._get_hypotenuse_length()
         self.quadrant_subsection = self._get_quadrant_subsection_slice()
-<<<<<<< HEAD
-=======
-        self.bounds = self.cascade_bounding_boxes(1, 5)
->>>>>>> c9d95ca333c2c4e9dc6782fb729bbcd43cf731d8
         self.draw = Draw(self)
 
     # Uses mathematical quadrants, not OpenCV indexing
@@ -150,7 +143,6 @@ class BpmCascade(feed.RpmFromFeed):
         box_diagonal = round(box_size * math.sqrt(2))
         num_boxes = math.floor(self.hypotenuse_length / box_diagonal)
         return num_boxes
-<<<<<<< HEAD
 
     # Currently only supports adjusting one box parameter
     def fit_box_parameters_to_radius(
@@ -175,14 +167,4 @@ class BpmCascade(feed.RpmFromFeed):
             box_center = (box_x, box_y)
             bounds.append(BoundingBox.from_center_and_size(box_center, box_size))
 
-=======
-
-    def cascade_bounding_boxes(self, num_boxes: int, box_size) -> list[BoundingBox]:
-        box_center = tuple(coord + box_size for coord in self.center_of_frame)
-        bounds = BoundingBox(
-            box_center,
-            box_size,
-            BoundingBox.region_from_center_and_size(box_center, box_size),
-        )
->>>>>>> c9d95ca333c2c4e9dc6782fb729bbcd43cf731d8
         return bounds
