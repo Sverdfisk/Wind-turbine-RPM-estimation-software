@@ -65,8 +65,10 @@ def main(feed, mode, params):
                 marked_frame = feed.draw.active_quadrant(frame, 0.6, 0.4)
                 # feed.doBoxStuff(numboxes, size)
                 bounds = feed.cascade_bounding_boxes(6, 10)
-                for i in bounds:
-                    frame = feed.draw.bounding_box(frame, i, 0.2, 0.8)
+                for bounding_box in bounds:
+                    frame = feed.draw.bounding_box(frame, bounding_box, 0.2, 0.8)
+                    bounding_box.detect_blade.from_colorgate()
+
                 # This MUST be called to refresh frames.
                 cv.imshow("Image feed", marked_frame)
                 k = cv.waitKey(30) & 0xFF

@@ -14,6 +14,7 @@ class BoundingBox:
         #  size from center or "radius"
         self.side_length = self.size * 2
         self.draw = Draw(self)
+        self.detect_blade = DetectBlade(self)
 
     def area(self):
         return self.side_length * self.side_length
@@ -49,6 +50,14 @@ class BoundingBox:
         return (center, sizex)
 
 
+class DetectBlade:
+    def __init__(self, parent):
+        self.parent = parent
+
+    def from_colorgate(self):
+        print(f"function called from obj: {self}\n")
+
+
 class Draw:
     def __init__(self, parent):
         self.parent = parent
@@ -63,7 +72,8 @@ class Draw:
         yrange, xrange = draw_region
         subregion = base_frame[yrange, xrange]
         white_rect = np.ones(subregion.shape, dtype=np.uint8) * 255
-        res = cv.addWeighted(subregion, base_weight, white_rect, draw_weight, 1.0)
+        res = cv.addWeighted(subregion, base_weight,
+                             white_rect, draw_weight, 1.0)
 
         base_frame[yrange, xrange] = res
         return base_frame
@@ -93,21 +103,29 @@ class Draw:
 
 class BpmCascade(feed.RpmFromFeed):
     def __init__(self, **kwargs):
-        # Assume self.quadrant is set here to define quadrant
         super().__init__(**kwargs)
         for key, value in kwargs.items():
             setattr(self, key, value)
-        self.quadrant = kwargs["quadrant"]
         self.center_of_frame = self.get_center_pixel()
-        self.corner = self._get_quadrant_corner_pixel(self.quadrant)
+        self.corner = self._get_quadrant_corner_pixel()
         self.hypotenuse_length = self._get_hypotenuse_length()
         self.quadrant_subsection = self._get_quadrant_subsection_slice()
-        self.bounds = self.cascade_bounding_boxes(1, 5)
+        self.quadrant_axis_map = self._generate_axis_mapping()
         self.draw = Draw(self)
 
+    def _generate_axis_mapping(self) -> tuple[int, int]:
+        axes = (1, -1)
+        if self.quadrant == 2:
+            axes = (-1, -1)
+        elif self.quadrant == 3:
+            axes = (-1, 1)
+        elif self.quadrant == 4:
+            axes = (1, 1)
+        return axes
+
     # Uses mathematical quadrants, not OpenCV indexing
-    def _get_quadrant_corner_pixel(self, quadrant: int) -> tuple[int, int]:
-        list_index = quadrant - 1
+    def _get_quadrant_corner_pixel(self) -> tuple[int, int]:
+        list_index = self.quadrant - 1
         all_corners = [
             (self.w - 1, 0),  # Top right
             (0, 0),  # Top left
@@ -145,7 +163,8 @@ class BpmCascade(feed.RpmFromFeed):
         num_boxes = math.floor(self.hypotenuse_length / box_diagonal)
         return num_boxes
 
-    # Currently only supports adjusting one box parameter
+    # TODO: implement this. Supposed to readjust box number and size parameters
+    # to make them fit within the frame, avoiding crashes
     def fit_box_parameters_to_radius(
         self,
         wanted_box_size: int,
@@ -157,22 +176,26 @@ class BpmCascade(feed.RpmFromFeed):
 
     def cascade_bounding_boxes(self, num_boxes: int, box_size) -> list[BoundingBox]:
         bounds = []
-        # Can (should?) be coded to only one axis as both axes are identical
-        offset_x = self.corner[0] - self.center_of_frame[0]
-        offset_y = self.corner[1] - self.center_of_frame[1]
-        delta = int(round(box_size * 2))
+        #  TODO: figure out a smarter way to do this axis stuff
+        offset_y = (
+            self.corner[1]
+            - self.center_of_frame[1]
+            + (box_size * self.quadrant_axis_map[1])
+        )
+        delta_y = box_size * (2 * self.quadrant_axis_map[1])
+
+        offset_x = (
+            self.corner[0]
+            - self.center_of_frame[0]
+            + (box_size * self.quadrant_axis_map[0])
+        )
+        delta_x = box_size * (2 * self.quadrant_axis_map[0])
 
         for i in range(num_boxes):
-            box_x = round(offset_x + delta * i)
-            box_y = round(offset_y + delta * i)
+            box_x = round(offset_x + delta_x * i)
+            box_y = round(offset_y + delta_y * i)
             box_center = (box_x, box_y)
-            bounds.append(BoundingBox.from_center_and_size(box_center, box_size))
+            bounds.append(BoundingBox.from_center_and_size(
+                box_center, box_size))
 
-    def cascade_bounding_boxes(self, num_boxes: int, box_size) -> list[BoundingBox]:
-        box_center = tuple(coord + box_size for coord in self.center_of_frame)
-        bounds = BoundingBox(
-            box_center,
-            box_size,
-            BoundingBox.region_from_center_and_size(box_center, box_size),
-        )
         return bounds
