@@ -64,7 +64,8 @@ def main(feed, mode, params):
             if feed.isActive:
                 marked_frame = feed.draw.active_quadrant(frame, 0.6, 0.4)
                 # feed.doBoxStuff(numboxes, size)
-                bounds = feed.cascade_bounding_boxes(6, 10)
+                box_params = (6, 10)
+                bounds = feed.cascade_bounding_boxes(*box_params)
                 for bounding_box in bounds:
                     frame = feed.draw.bounding_box(frame, bounding_box, 0.2, 0.8)
                     bounding_box.detect_blade.from_colorgate()

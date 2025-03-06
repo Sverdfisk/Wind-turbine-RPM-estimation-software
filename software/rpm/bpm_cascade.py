@@ -159,7 +159,7 @@ class BpmCascade(feed.RpmFromFeed):
         return hyp_length
 
     def boxes_in_radius(self, box_size: int) -> int:
-        box_diagonal = round(box_size * math.sqrt(2))
+        box_diagonal = round(2 * box_size * math.sqrt(2))
         num_boxes = math.floor(self.hypotenuse_length / box_diagonal)
         return num_boxes
 
@@ -171,8 +171,46 @@ class BpmCascade(feed.RpmFromFeed):
         wanted_num_boxes: int,
         resize_boxes: bool = True,
         adjust_num_boxes: bool = False,
-    ):
-        pass
+    ) -> tuple[int, int]:
+        # Calculate how many boxes can fit with the current box size:
+        box_limit = self.boxes_in_radius(wanted_box_size)
+
+        # Initialize as an ideal request
+        result_boxes = wanted_num_boxes
+        result_size = wanted_box_size
+
+        # Case 1: The current request goes out of bounds
+        if wanted_num_boxes > box_limit:
+            if adjust_num_boxes:
+                # The current limit finder always undershoots, so this is safe
+                result_boxes = box_limit  # - 1
+
+            elif resize_boxes:
+                # Reduce the box size until it can hold the desired box count
+                while True:
+                    result_size -= 1
+                    new_box_amount = self.boxes_in_radius(result_size)
+                    if new_box_amount <= wanted_num_boxes:
+                        break
+
+        # Case B: The user is within bounds
+        else:
+            # 1) If set, expand box size to the largest possible until it no longer fits
+            if resize_boxes:
+                while True:
+                    if self.boxes_in_radius(result_size) < wanted_num_boxes:
+                        break
+                    result_size += 1
+
+            # 2) If set, increase the number of boxes until adding one more goes out of bounds
+            if adjust_num_boxes:
+                while True:
+                    if self.boxes_in_radius(result_size) >= result_boxes:
+                        break
+                    result_boxes += 1
+
+        # Store the final ‘safe’ parameters
+        return (result_boxes, result_size)
 
     def cascade_bounding_boxes(self, num_boxes: int, box_size) -> list[BoundingBox]:
         bounds = []
