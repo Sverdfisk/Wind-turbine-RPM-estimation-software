@@ -2,6 +2,7 @@ import cv2 as cv
 import numpy as np
 from .feed import feed
 import math
+from collections import deque
 
 
 class BoundingBox:
@@ -54,8 +55,19 @@ class DetectBlade:
     def __init__(self, parent):
         self.parent = parent
 
-    def from_colorgate(self):
-        print(f"function called from obj: {self}\n")
+    # Returns an array of altered pixels in its own region
+    def dilation_erosion(
+        self,
+        frame: np.ndarray,
+        kernel_size: tuple[int, int],
+        dil_it: int,
+        er_it: int,
+    ) -> np.ndarray:
+        subregion = frame[self.parent.region]
+        kernel = cv.getStructuringElement(cv.MORPH_RECT, kernel_size)
+        dilated = cv.dilate(subregion, kernel, dil_it)
+        processed_subregion = cv.erode(dilated, kernel, er_it)
+        return processed_subregion
 
 
 class Draw:
@@ -99,6 +111,10 @@ class Draw:
             base_frame, (yrange, xrange), base_weight, draw_weight
         )
         return new_frame
+
+    def processing_results(self, frame: np.ndarray, value: np.ndarray) -> np.ndarray:
+        frame[self.parent.region] = value
+        return frame
 
 
 class BpmCascade(feed.RpmFromFeed):
@@ -212,13 +228,21 @@ class BpmCascade(feed.RpmFromFeed):
         # Store the final ‘safe’ parameters
         return (result_boxes, result_size)
 
-    def cascade_bounding_boxes(self, num_boxes: int, box_size) -> list[BoundingBox]:
+    def _initialize_queues(self, num_queues: int, queue_length: int) -> None:
+        self.frame_buffers = []
+        for i in range(num_queues):
+            self.frame_buffers.append(deque(maxlen=queue_length))
+
+    def cascade_bounding_boxes(
+        self, num_boxes: int, box_size, queue_length: int = 5
+    ) -> list[BoundingBox]:
         bounds = []
+        self._initialize_queues(num_boxes, queue_length)
         #  TODO: figure out a smarter way to do this axis stuff
         offset_y = (
             self.corner[1]
             - self.center_of_frame[1]
-            + (box_size * self.quadrant_axis_map[1])
+            + (box_size * self.quadrant_axis_map[1] - 1)
         )
         delta_y = box_size * (2 * self.quadrant_axis_map[1])
 

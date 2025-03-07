@@ -62,16 +62,25 @@ def main(feed, mode, params):
             frame = feed.get_frame()
 
             if feed.isActive:
-                marked_frame = feed.draw.active_quadrant(frame, 0.6, 0.4)
-                # feed.doBoxStuff(numboxes, size)
                 box_params = (6, 10)
-                bounds = feed.cascade_bounding_boxes(*box_params)
-                for bounding_box in bounds:
-                    frame = feed.draw.bounding_box(frame, bounding_box, 0.2, 0.8)
-                    bounding_box.detect_blade.from_colorgate()
+                bounds = feed.cascade_bounding_boxes(*box_params, queue_length=3)
+
+                for frame_buffer_index, bounding_box in enumerate(bounds):
+                    # Do processing
+                    processed_region = bounding_box.detect_blade.dilation_erosion(
+                        frame, (15, 15), 10, 20
+                    )
+
+                    # Store the processed regions in the buffer
+                    feed.frame_buffers[frame_buffer_index].append(processed_region)
+
+                    # Draw processing
+                    frame = bounding_box.draw.processing_results(
+                        frame, processed_region
+                    )
 
                 # This MUST be called to refresh frames.
-                cv.imshow("Image feed", marked_frame)
+                cv.imshow("Image feed", frame)
                 k = cv.waitKey(30) & 0xFF
                 if k == 27:
                     break
