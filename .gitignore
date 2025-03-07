@@ -181,7 +181,4 @@ software/assets/*
 software/runs/*
 software/test.py
 software/middleman.py
-<<<<<<< HEAD
 software/ignorethis
-=======
->>>>>>> d68a355431ef6cb617ac6d6903e3797fe3c23a7d
