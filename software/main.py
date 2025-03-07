@@ -65,6 +65,7 @@ def main(feed, mode, params):
                 box_params = (6, 10)
                 bounds = feed.cascade_bounding_boxes(*box_params, queue_length=3)
 
+                # Each box gets its own frame buffer, organized by the box index
                 for frame_buffer_index, bounding_box in enumerate(bounds):
                     # Do processing
                     processed_region = bounding_box.detect_blade.dilation_erosion(
@@ -76,7 +77,7 @@ def main(feed, mode, params):
 
                     # Draw processing
                     frame = bounding_box.draw.processing_results(
-                        frame, processed_region
+                        frame, bounding_box.region, processed_region
                     )
 
                 # This MUST be called to refresh frames.

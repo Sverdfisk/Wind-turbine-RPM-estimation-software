@@ -84,8 +84,7 @@ class Draw:
         yrange, xrange = draw_region
         subregion = base_frame[yrange, xrange]
         white_rect = np.ones(subregion.shape, dtype=np.uint8) * 255
-        res = cv.addWeighted(subregion, base_weight,
-                             white_rect, draw_weight, 1.0)
+        res = cv.addWeighted(subregion, base_weight, white_rect, draw_weight, 1.0)
 
         base_frame[yrange, xrange] = res
         return base_frame
@@ -112,8 +111,10 @@ class Draw:
         )
         return new_frame
 
-    def processing_results(self, frame: np.ndarray, value: np.ndarray) -> np.ndarray:
-        frame[self.parent.region] = value
+    def processing_results(
+        self, frame: np.ndarray, region: tuple[slice, slice], value: np.ndarray
+    ) -> np.ndarray:
+        frame[region] = value
         return frame
 
 
@@ -257,7 +258,6 @@ class BpmCascade(feed.RpmFromFeed):
             box_x = round(offset_x + delta_x * i)
             box_y = round(offset_y + delta_y * i)
             box_center = (box_x, box_y)
-            bounds.append(BoundingBox.from_center_and_size(
-                box_center, box_size))
+            bounds.append(BoundingBox.from_center_and_size(box_center, box_size))
 
         return bounds
