@@ -58,13 +58,12 @@ def main(feed, mode, params):
 
     elif mode == "bpm":
         _ = feed.get_frame()
+        box_params = (6, 10)
+        bounds = feed.cascade_bounding_boxes(*box_params, queue_length=15)
         while True:
             frame = feed.get_frame()
 
             if feed.isActive:
-                box_params = (6, 10)
-                bounds = feed.cascade_bounding_boxes(*box_params, queue_length=3)
-
                 # Each box gets its own frame buffer, organized by the box index
                 for frame_buffer_index, bounding_box in enumerate(bounds):
                     # Do processing
@@ -72,9 +71,8 @@ def main(feed, mode, params):
                         frame, (15, 15), 10, 20
                     )
 
-                    # Store the processed regions in the buffer
-                    feed.frame_buffers[frame_buffer_index].append(processed_region)
-
+                    # Save processed regions in frame buffer
+                    feed.fb.insert(frame_buffer_index, processed_region)
                     # Draw processing
                     frame = bounding_box.draw.processing_results(
                         frame, bounding_box.region, processed_region

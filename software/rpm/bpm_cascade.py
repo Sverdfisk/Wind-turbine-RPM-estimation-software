@@ -84,7 +84,8 @@ class Draw:
         yrange, xrange = draw_region
         subregion = base_frame[yrange, xrange]
         white_rect = np.ones(subregion.shape, dtype=np.uint8) * 255
-        res = cv.addWeighted(subregion, base_weight, white_rect, draw_weight, 1.0)
+        res = cv.addWeighted(subregion, base_weight,
+                             white_rect, draw_weight, 1.0)
 
         base_frame[yrange, xrange] = res
         return base_frame
@@ -118,6 +119,38 @@ class Draw:
         return frame
 
 
+class FrameBuffer:
+    def __init__(self, parent):
+        self.parent = parent
+
+    def insert(self, buffer: int, region: np.ndarray) -> None:
+        # Store the processed regions and nice-to-haves in the buffer
+        intensity = int(round(np.mean(region)))
+
+        if len(self.parent.frame_buffers[buffer]) > 0:
+            prev_frame_intensity = self.parent.frame_buffers[buffer][-1]["intensity"]
+        else:
+            prev_frame_intensity = 0
+        intensity_delta = intensity - prev_frame_intensity
+        print(
+            f"buffer={buffer} intensity={intensity} prev_intensity={
+                prev_frame_intensity
+            } delta={intensity_delta}"
+        )
+
+        entry = {
+            "subregion": region,
+            "intensity": intensity,
+            "intensity_delta": intensity_delta,
+        }
+        self.parent.frame_buffers[buffer].append(entry)
+
+    # Only takes the last updated value and updates avgs
+    # Designed this way so a user can conditionally update
+    def update_averages(self):
+        pass
+
+
 class BpmCascade(feed.RpmFromFeed):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -129,6 +162,7 @@ class BpmCascade(feed.RpmFromFeed):
         self.quadrant_subsection = self._get_quadrant_subsection_slice()
         self.quadrant_axis_map = self._generate_axis_mapping()
         self.draw = Draw(self)
+        self.fb = FrameBuffer(self)
 
     def _generate_axis_mapping(self) -> tuple[int, int]:
         axes = (1, -1)
@@ -231,7 +265,8 @@ class BpmCascade(feed.RpmFromFeed):
 
     def _initialize_queues(self, num_queues: int, queue_length: int) -> None:
         self.frame_buffers = []
-        for i in range(num_queues):
+        self.frame_buffer_averages = []
+        for _ in range(num_queues):
             self.frame_buffers.append(deque(maxlen=queue_length))
 
     def cascade_bounding_boxes(
@@ -258,6 +293,7 @@ class BpmCascade(feed.RpmFromFeed):
             box_x = round(offset_x + delta_x * i)
             box_y = round(offset_y + delta_y * i)
             box_center = (box_x, box_y)
-            bounds.append(BoundingBox.from_center_and_size(box_center, box_size))
+            bounds.append(BoundingBox.from_center_and_size(
+                box_center, box_size))
 
         return bounds
