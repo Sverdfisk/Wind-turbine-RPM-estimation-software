@@ -1,7 +1,9 @@
 from main import main
 from rpm import utils
+from rpm import bpm_cascade
 from rpm import opticalflow
 import argparse
+from rpm import calculate_rpm
 
 parser = argparse.ArgumentParser()
 parser.add_argument("cfg")
@@ -29,8 +31,8 @@ for i in range(args.runs):
     errors = []
 
     # restart the feed for every run
-    feed = opticalflow.OpticalFlow(**params)
-    rpms, errors = main(feed, params)
+    feed = bpm_cascade.BpmCascade(**params)
+    out = main(feed, "bpm", params)
     if args.log:
         utils.print_statistics(rpms, errors, real_rpm=params["real_rpm"])
         utils.write_output(params["id"], run_number, rpms, params["real_rpm"])

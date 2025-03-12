@@ -6,6 +6,7 @@ class Feed:
     def __init__(self, **kwargs):
         self.crop_points = kwargs["crop_points"]
         self._set_base_config(kwargs["target"], kwargs["fps"])
+        self.frame_cnt = 0
 
     def _set_base_config(self, target, fps) -> None:
         self.target = target
@@ -20,6 +21,8 @@ class Feed:
     def get_frame(self) -> np.ndarray:
         ret, frame = self.video.read()
         self.isActive = ret
+        if ret:
+            self.frame_cnt += 1
         if self.crop_points is not None and ret:
             frame = frame[self.yrange, self.xrange]
         return frame

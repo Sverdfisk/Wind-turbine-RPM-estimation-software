@@ -58,6 +58,14 @@ def get_rpm_from_flow_vectors(velocity_vectors: list, radius, fps: float) -> tup
     return rpm
 
 
+def calculate_bpm(frame_time: int, fps: float) -> float:
+    real_time = frame_time / fps
+    # Any blade triggers a tick, luckily they
+    # are evenly spaced 120 degrees apart
+    adjusted_ticktime_seconds = real_time * 3
+    return 60 / adjusted_ticktime_seconds
+
+
 if __name__ == "__main__":
     rpms = []
     errors = []

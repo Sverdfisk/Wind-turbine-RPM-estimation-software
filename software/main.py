@@ -1,4 +1,5 @@
 import cv2 as cv
+from collections import deque
 from rpm import opticalflow
 from rpm import bpm_cascade
 from rpm import utils
@@ -58,8 +59,11 @@ def main(feed, mode, params):
 
     elif mode == "bpm":
         _ = feed.get_frame()
-        box_params = (6, 10)
-        bounds = feed.cascade_bounding_boxes(*box_params, queue_length=15)
+        box_params = (9, 5)
+        out = []
+        bounds = feed.cascade_bounding_boxes(*box_params, queue_length=3)
+        frame_ticks = deque(maxlen=2)
+
         while True:
             frame = feed.get_frame()
 
@@ -68,7 +72,7 @@ def main(feed, mode, params):
                 for frame_buffer_index, bounding_box in enumerate(bounds):
                     # Do processing
                     processed_region = bounding_box.detect_blade.dilation_erosion(
-                        frame, (15, 15), 10, 20
+                        frame, (6, 6), 10, 20
                     )
 
                     # Save processed regions in frame buffer
@@ -78,6 +82,18 @@ def main(feed, mode, params):
                         frame, bounding_box.region, processed_region
                     )
 
+                feed.fb.update_averages()
+
+                if feed.fb.average > 45:
+                    frame_ticks.append(feed.frame_cnt)
+                # print(feed.fb.average)
+                if len(frame_ticks) == 2:
+                    bpm = bounds[1].detect_blade.calculate_bpm(
+                        frame_ticks[1] - frame_ticks[0], params["fps"]
+                    )
+                    if bpm not in out:
+                        out.append(bpm)
+                        print(out[-1])
                 # This MUST be called to refresh frames.
                 cv.imshow("Image feed", frame)
                 k = cv.waitKey(30) & 0xFF
@@ -105,6 +121,7 @@ if __name__ == "__main__":
     # restart the feed for every run
     # feed = opticalflow.OpticalFlow(**params)
     feed = bpm_cascade.BpmCascade(**params)
+
     rpms, errors = main(feed, mode, params)
 
     cv.destroyAllWindows()

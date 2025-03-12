@@ -1,5 +1,6 @@
 import cv2 as cv
 import numpy as np
+from . import calculate_rpm as crpm
 from .feed import feed
 import math
 from collections import deque
@@ -12,7 +13,7 @@ class BoundingBox:
 
         #  Region in OpenCV crop format
         self.region = region
-        #  size from center or "radius"
+        #  side length =/= size
         self.side_length = self.size * 2
         self.draw = Draw(self)
         self.detect_blade = DetectBlade(self)
@@ -69,6 +70,9 @@ class DetectBlade:
         processed_subregion = cv.erode(dilated, kernel, er_it)
         return processed_subregion
 
+    def calculate_bpm(self, frame_time: int, fps: float) -> float:
+        return crpm.calculate_bpm(frame_time, fps)
+
 
 class Draw:
     def __init__(self, parent):
@@ -122,6 +126,7 @@ class Draw:
 class FrameBuffer:
     def __init__(self, parent):
         self.parent = parent
+        self.average = 0
 
     def insert(self, buffer: int, region: np.ndarray) -> None:
         # Store the processed regions and nice-to-haves in the buffer
@@ -130,13 +135,10 @@ class FrameBuffer:
         if len(self.parent.frame_buffers[buffer]) > 0:
             prev_frame_intensity = self.parent.frame_buffers[buffer][-1]["intensity"]
         else:
-            prev_frame_intensity = 0
+            #  Just to keep the delta at 0 to avoid startup spikes
+            prev_frame_intensity = intensity
         intensity_delta = intensity - prev_frame_intensity
-        print(
-            f"buffer={buffer} intensity={intensity} prev_intensity={
-                prev_frame_intensity
-            } delta={intensity_delta}"
-        )
+        # print(f"buffer: {buffer} - delta: {intensity_delta}")
 
         entry = {
             "subregion": region,
@@ -147,8 +149,12 @@ class FrameBuffer:
 
     # Only takes the last updated value and updates avgs
     # Designed this way so a user can conditionally update
-    def update_averages(self):
-        pass
+    def update_averages(self) -> None:
+        vals = []
+        for fb in self.parent.frame_buffers:
+            for entry in fb:
+                vals.append(entry["intensity_delta"])
+        self.average = np.mean(vals)
 
 
 class BpmCascade(feed.RpmFromFeed):
@@ -295,5 +301,4 @@ class BpmCascade(feed.RpmFromFeed):
             box_center = (box_x, box_y)
             bounds.append(BoundingBox.from_center_and_size(
                 box_center, box_size))
-
         return bounds
