@@ -58,15 +58,14 @@ def main(feed, mode, params):
         return rpms, errors
 
     elif mode == "bpm":
-        _ = feed.get_frame()
-        box_params = (9, 5)
+        frame = feed.get_frame()
+        box_params = (3, 2)
         out = []
         bounds = feed.cascade_bounding_boxes(*box_params, queue_length=3)
         frame_ticks = deque(maxlen=2)
+        toggle = True
 
         while True:
-            frame = feed.get_frame()
-
             if feed.isActive:
                 # Each box gets its own frame buffer, organized by the box index
                 for frame_buffer_index, bounding_box in enumerate(bounds):
@@ -82,23 +81,44 @@ def main(feed, mode, params):
                         frame, bounding_box.region, processed_region
                     )
 
-                feed.fb.update_averages()
+                if feed.frame_cnt % 2 == 0:
+                    feed.fb.update_averages()
 
-                if feed.fb.average > 45:
+                # toggle has reset and we get a blade detection
+                if feed.fb.average > 0 and toggle:
+                    # Note the frame we detect the blade
                     frame_ticks.append(feed.frame_cnt)
-                # print(feed.fb.average)
-                if len(frame_ticks) == 2:
-                    bpm = bounds[1].detect_blade.calculate_bpm(
-                        frame_ticks[1] - frame_ticks[0], params["fps"]
-                    )
-                    if bpm not in out:
-                        out.append(bpm)
-                        print(out[-1])
+
+                    # We cant do calculations with one detection
+                    if len(frame_ticks) == 2:
+                        rpm = bounds[1].detect_blade.calculate_rpm(
+                            frame_ticks[1] - frame_ticks[0], params["fps"]
+                        )
+                        out.append(rpm)
+
+                    # Stop additional triggers until we've stabilized
+                    toggle = False
+
+                print(
+                    f"frame: {feed.frame_cnt} - color diff: {
+                        feed.fb.average
+                    } - detect enabled: {toggle} - latest measured RPM: {
+                        0 if out == [] else round(out[-1], 1)
+                    } - last detection at: {
+                        None if frame_ticks == deque(maxlen=2) else frame_ticks[-1]
+                    }"
+                )
+
+                if feed.fb.average == 0:
+                    toggle = True
+
                 # This MUST be called to refresh frames.
                 cv.imshow("Image feed", frame)
                 k = cv.waitKey(30) & 0xFF
                 if k == 27:
                     break
+
+                frame = feed.get_frame()
             else:
                 # utils.log
                 break

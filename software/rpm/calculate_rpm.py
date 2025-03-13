@@ -7,10 +7,8 @@ def view_angle_scaling(
     ground_to_turbine_angle: float, perspective_rotation_angle: float
 ) -> float:
     # Find the plane normal vector of the turbine
-    nx = math.cos(ground_to_turbine_angle) * \
-        math.sin(perspective_rotation_angle)
-    ny = math.cos(ground_to_turbine_angle) * \
-        math.cos(perspective_rotation_angle)
+    nx = math.cos(ground_to_turbine_angle) * math.sin(perspective_rotation_angle)
+    ny = math.cos(ground_to_turbine_angle) * math.cos(perspective_rotation_angle)
     nz = math.sin(ground_to_turbine_angle)
 
     turbine_normal = np.array([nx, ny, nz])
@@ -58,7 +56,7 @@ def get_rpm_from_flow_vectors(velocity_vectors: list, radius, fps: float) -> tup
     return rpm
 
 
-def calculate_bpm(frame_time: int, fps: float) -> float:
+def calculate_rpm(frame_time: int, fps: float) -> float:
     real_time = frame_time / fps
     # Any blade triggers a tick, luckily they
     # are evenly spaced 120 degrees apart

@@ -70,8 +70,8 @@ class DetectBlade:
         processed_subregion = cv.erode(dilated, kernel, er_it)
         return processed_subregion
 
-    def calculate_bpm(self, frame_time: int, fps: float) -> float:
-        return crpm.calculate_bpm(frame_time, fps)
+    def calculate_rpm(self, frame_time: int, fps: float) -> float:
+        return crpm.calculate_rpm(frame_time, fps)
 
 
 class Draw:
@@ -88,8 +88,7 @@ class Draw:
         yrange, xrange = draw_region
         subregion = base_frame[yrange, xrange]
         white_rect = np.ones(subregion.shape, dtype=np.uint8) * 255
-        res = cv.addWeighted(subregion, base_weight,
-                             white_rect, draw_weight, 1.0)
+        res = cv.addWeighted(subregion, base_weight, white_rect, draw_weight, 1.0)
 
         base_frame[yrange, xrange] = res
         return base_frame
@@ -154,7 +153,7 @@ class FrameBuffer:
         for fb in self.parent.frame_buffers:
             for entry in fb:
                 vals.append(entry["intensity_delta"])
-        self.average = np.mean(vals)
+        self.average = round(np.mean(vals))
 
 
 class BpmCascade(feed.RpmFromFeed):
@@ -296,9 +295,8 @@ class BpmCascade(feed.RpmFromFeed):
         delta_x = box_size * (2 * self.quadrant_axis_map[0])
 
         for i in range(num_boxes):
-            box_x = round(offset_x + delta_x * i)
+            box_x = round(offset_x)
             box_y = round(offset_y + delta_y * i)
             box_center = (box_x, box_y)
-            bounds.append(BoundingBox.from_center_and_size(
-                box_center, box_size))
+            bounds.append(BoundingBox.from_center_and_size(box_center, box_size))
         return bounds
