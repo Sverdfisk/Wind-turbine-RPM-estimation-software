@@ -14,7 +14,7 @@ import argparse
 def main(feed, mode, params):
     rpms = []
     errors = []
-    if mode == "optical flow":
+    if mode == "opticalflow":
         while True:
             if feed.isActive:
                 data, image = feed.get_optical_flow_vectors()
@@ -49,9 +49,7 @@ def main(feed, mode, params):
                 # TODO: refactor this
                 if __name__ == "__main__":
                     if args.log:
-                        utils.write_output(
-                            params["id"], 0, np.mean(rpms), params["real_rpm"]
-                        )
+                        utils.write_output(params["id"], 0, rpms, params["real_rpm"])
                 break
 
         cv.destroyAllWindows()
@@ -137,11 +135,14 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     params = utils.parse_json(args.cfg)
-    mode = "bpm"
     # restart the feed for every run
-    # feed = opticalflow.OpticalFlow(**params)
-    feed = bpm_cascade.BpmCascade(**params)
 
-    rpms, errors = main(feed, mode, params)
+    # feed = opticalflow.OpticalFlow(**params)
+    if params["mode"] == "bpm":
+        feed = bpm_cascade.BpmCascade(**params)
+    else:
+        feed = opticalflow.OpticalFlow(**params)
+
+    main(feed, params["mode"], params)
 
     cv.destroyAllWindows()
