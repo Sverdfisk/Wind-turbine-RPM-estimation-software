@@ -3,7 +3,6 @@ from collections import deque
 from rpm import opticalflow
 from rpm import bpm_cascade
 from rpm import utils
-import numpy as np
 import argparse
 
 # --------Keep this file short!--------
@@ -52,7 +51,6 @@ def main(feed, params):
                         utils.write_output(params["id"], 0, rpms, params["real_rpm"])
                 break
 
-        cv.destroyAllWindows()
         return rpms, errors
 
     elif isinstance(feed, bpm_cascade.BpmCascade):
@@ -123,7 +121,6 @@ def main(feed, params):
 
 
 if __name__ == "__main__":
-    np.set_printoptions(formatter={"all": lambda x: str(x)})
     parser = argparse.ArgumentParser()
     parser.add_argument("cfg")
     parser.add_argument(
@@ -135,14 +132,12 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     params = utils.parse_json(args.cfg)
-    # restart the feed for every run
 
-    # feed = opticalflow.OpticalFlow(**params)
+    # restart the feed for every run
     if params["mode"] == "bpm":
         feed = bpm_cascade.BpmCascade(**params)
     else:
         feed = opticalflow.OpticalFlow(**params)
 
     main(feed, params)
-
     cv.destroyAllWindows()

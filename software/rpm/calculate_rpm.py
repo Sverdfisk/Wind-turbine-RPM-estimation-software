@@ -20,7 +20,7 @@ def view_angle_scaling(
     return rpm_scaling_factor
 
 
-def calculate_frequency(velocity: float, radius: int, fps: float) -> float:
+def calculate_frequency(velocity, radius: int, fps: float) -> float:
     # velocity is in pixels per frame
     # units: (pixels / frame) * (frames / second) / pixels ) = 1/s = rad/s
     ang_vel = (velocity * fps) / radius
@@ -28,7 +28,7 @@ def calculate_frequency(velocity: float, radius: int, fps: float) -> float:
     return freq
 
 
-def filter_magnitudes(magnitudes: list[float]) -> list[float]:
+def filter_magnitudes(magnitudes: np.ndarray) -> np.ndarray:
     magnitudes = np.array(magnitudes)
     std_dev = np.std(magnitudes)
     mean = np.mean(magnitudes)
@@ -40,7 +40,9 @@ def filter_magnitudes(magnitudes: list[float]) -> list[float]:
     return magnitudes
 
 
-def get_rpm_from_flow_vectors(velocity_vectors: list, radius, fps: float) -> tuple:
+def get_rpm_from_flow_vectors(
+    velocity_vectors: np.ndarray, radius, fps: float
+) -> None | float:
     if velocity_vectors.size == 0:
         return None
 
@@ -49,14 +51,14 @@ def get_rpm_from_flow_vectors(velocity_vectors: list, radius, fps: float) -> tup
         mag = math.sqrt(vector[0] ** 2 + vector[1] ** 2)
         magnitudes.append(mag)
 
-    filtered_magnitudes = filter_magnitudes(magnitudes)
+    filtered_magnitudes = filter_magnitudes(np.array(magnitudes))
     vel = np.average(filtered_magnitudes)
 
     rpm = 60 * calculate_frequency(vel, radius, fps)
     return rpm
 
 
-def calculate_rpm(frame_time: int, fps: float) -> float:
+def calculate_rpm_from_frame_time(frame_time: int, fps: float) -> float:
     real_time = frame_time / fps
     # Any blade triggers a tick, luckily they
     # are evenly spaced 120 degrees apart

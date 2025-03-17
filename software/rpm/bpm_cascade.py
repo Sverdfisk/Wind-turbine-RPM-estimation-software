@@ -71,7 +71,7 @@ class DetectBlade:
         return processed_subregion
 
     def calculate_rpm(self, frame_time: int, fps: float) -> float:
-        return crpm.calculate_rpm(frame_time, fps)
+        return crpm.calculate_rpm_from_frame_time(frame_time, fps)
 
 
 class Draw:
@@ -88,8 +88,7 @@ class Draw:
         yrange, xrange = draw_region
         subregion = base_frame[yrange, xrange]
         white_rect = np.ones(subregion.shape, dtype=np.uint8) * 255
-        res = cv.addWeighted(subregion, base_weight,
-                             white_rect, draw_weight, 1.0)
+        res = cv.addWeighted(subregion, base_weight, white_rect, draw_weight, 1.0)
 
         base_frame[yrange, xrange] = res
         return base_frame
@@ -169,6 +168,9 @@ class BpmCascade(feed.RpmFromFeed):
         self.quadrant_axis_map = self._generate_axis_mapping()
         self.draw = Draw(self)
         self.fb = FrameBuffer(self)
+        self.quadrant: int
+        self.no_x: bool
+        self.no_y: bool
 
     def _generate_axis_mapping(self) -> tuple[int, int]:
         axes = (1, -1)
@@ -285,10 +287,8 @@ class BpmCascade(feed.RpmFromFeed):
         self._initialize_queues(num_boxes, queue_length)
 
         #  TODO: figure out a smarter way to do this axis stuff
-        delta_y = 0 if self.no_y else box_size * \
-            (2 * self.quadrant_axis_map[1])
-        delta_x = 0 if self.no_x else box_size * \
-            (2 * self.quadrant_axis_map[0])
+        delta_y = 0 if self.no_y else box_size * (2 * self.quadrant_axis_map[1])
+        delta_x = 0 if self.no_x else box_size * (2 * self.quadrant_axis_map[0])
 
         offset_y = (
             self.corner[1]
@@ -305,6 +305,5 @@ class BpmCascade(feed.RpmFromFeed):
             box_x = round(offset_x + delta_x * i)
             box_y = round(offset_y + delta_y * i)
             box_center = (box_x, box_y)
-            bounds.append(BoundingBox.from_center_and_size(
-                box_center, box_size))
+            bounds.append(BoundingBox.from_center_and_size(box_center, box_size))
         return bounds
