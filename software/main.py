@@ -35,7 +35,8 @@ def main(feed, mode, params):
                 # Ensure that dead frames do not get counted
                 if rpm is not None:
                     rpms.append(rpm)
-                    error = utils.calculate_error_percentage(rpm, params["real_rpm"])
+                    error = utils.calculate_error_percentage(
+                        rpm, params["real_rpm"])
                     errors.append(error)
                 flow_image = feed.draw_optical_flow(image, data[1], data[0])
 
@@ -105,7 +106,8 @@ def main(feed, mode, params):
                     } - detect enabled: {toggle} - latest measured RPM: {
                         0 if out == [] else round(out[-1], 1)
                     } - last detection at: {
-                        None if frame_ticks == deque(maxlen=2) else frame_ticks[-1]
+                        None if frame_ticks == deque(
+                            maxlen=2) else frame_ticks[-1]
                     }"
                 )
 

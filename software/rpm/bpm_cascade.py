@@ -88,7 +88,8 @@ class Draw:
         yrange, xrange = draw_region
         subregion = base_frame[yrange, xrange]
         white_rect = np.ones(subregion.shape, dtype=np.uint8) * 255
-        res = cv.addWeighted(subregion, base_weight, white_rect, draw_weight, 1.0)
+        res = cv.addWeighted(subregion, base_weight,
+                             white_rect, draw_weight, 1.0)
 
         base_frame[yrange, xrange] = res
         return base_frame
@@ -275,28 +276,35 @@ class BpmCascade(feed.RpmFromFeed):
             self.frame_buffers.append(deque(maxlen=queue_length))
 
     def cascade_bounding_boxes(
-        self, num_boxes: int, box_size, queue_length: int = 5
+        self,
+        num_boxes: int,
+        box_size,
+        queue_length: int = 5,
     ) -> list[BoundingBox]:
         bounds = []
         self._initialize_queues(num_boxes, queue_length)
+
         #  TODO: figure out a smarter way to do this axis stuff
+        delta_y = 0 if self.no_y else box_size * \
+            (2 * self.quadrant_axis_map[1])
+        delta_x = 0 if self.no_x else box_size * \
+            (2 * self.quadrant_axis_map[0])
+
         offset_y = (
             self.corner[1]
             - self.center_of_frame[1]
             + (box_size * self.quadrant_axis_map[1] - 1)
         )
-        delta_y = box_size * (2 * self.quadrant_axis_map[1])
-
         offset_x = (
             self.corner[0]
             - self.center_of_frame[0]
             + (box_size * self.quadrant_axis_map[0])
         )
-        delta_x = box_size * (2 * self.quadrant_axis_map[0])
 
         for i in range(num_boxes):
-            box_x = round(offset_x)
+            box_x = round(offset_x + delta_x * i)
             box_y = round(offset_y + delta_y * i)
             box_center = (box_x, box_y)
-            bounds.append(BoundingBox.from_center_and_size(box_center, box_size))
+            bounds.append(BoundingBox.from_center_and_size(
+                box_center, box_size))
         return bounds
