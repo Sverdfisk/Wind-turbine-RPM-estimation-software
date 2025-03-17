@@ -11,10 +11,10 @@ import argparse
 # Look at rpm/opticalflow.py and rpm/calculate_rpm.py for details
 
 
-def main(feed, mode, params):
+def main(feed, params):
     rpms = []
     errors = []
-    if mode == "opticalflow":
+    if isinstance(feed, opticalflow.OpticalFlow):
         while True:
             if feed.isActive:
                 data, image = feed.get_optical_flow_vectors()
@@ -35,8 +35,7 @@ def main(feed, mode, params):
                 # Ensure that dead frames do not get counted
                 if rpm is not None:
                     rpms.append(rpm)
-                    error = utils.calculate_error_percentage(
-                        rpm, params["real_rpm"])
+                    error = utils.calculate_error_percentage(rpm, params["real_rpm"])
                     errors.append(error)
                 flow_image = feed.draw_optical_flow(image, data[1], data[0])
 
@@ -56,7 +55,7 @@ def main(feed, mode, params):
         cv.destroyAllWindows()
         return rpms, errors
 
-    elif mode == "bpm":
+    elif isinstance(feed, bpm_cascade.BpmCascade):
         frame = feed.get_frame()
         box_params = (3, 2)
         out = []
@@ -104,8 +103,7 @@ def main(feed, mode, params):
                     } - detect enabled: {toggle} - latest measured RPM: {
                         0 if out == [] else round(out[-1], 1)
                     } - last detection at: {
-                        None if frame_ticks == deque(
-                            maxlen=2) else frame_ticks[-1]
+                        None if frame_ticks == deque(maxlen=2) else frame_ticks[-1]
                     }"
                 )
 
@@ -145,6 +143,6 @@ if __name__ == "__main__":
     else:
         feed = opticalflow.OpticalFlow(**params)
 
-    main(feed, params["mode"], params)
+    main(feed, params)
 
     cv.destroyAllWindows()
