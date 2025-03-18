@@ -6,6 +6,16 @@ from . import utils
 def view_angle_scaling(
     ground_to_turbine_angle: float, perspective_rotation_angle: float
 ) -> float:
+    """
+    Find the angle between the turbine and the camera based on the dimensions of the cropped region.
+    The measured vectors are scaled by some factors so that, on average,
+    they will be the same length/magnitude as they would be head-on.
+
+    Args:
+        ground_to_turbine_angle (float): angle from the ground/camera to the turbine hub.
+        perspective_rotation_angle (float): horizontal angle (i.e yaw angle) of the turbine hub relative to the camera.
+
+    """
     # Find the plane normal vector of the turbine
     nx = math.cos(ground_to_turbine_angle) * math.sin(perspective_rotation_angle)
     ny = math.cos(ground_to_turbine_angle) * math.cos(perspective_rotation_angle)
@@ -20,9 +30,19 @@ def view_angle_scaling(
     return rpm_scaling_factor
 
 
-def calculate_frequency(velocity, radius: int, fps: float) -> float:
-    # velocity is in pixels per frame
-    # units: (pixels / frame) * (frames / second) / pixels ) = 1/s = rad/s
+def calculate_frequency(velocity: float, radius: int, fps: float) -> float:
+    """
+    Converts vectors to frequency. Does some spooky math to get there.
+    Note: velocity is in pixels per frame, therefore normal angular frequency doesn't work.
+
+    Args:
+        velocity (float): measured magnitude/velocity vector
+        radius (int): radius of the cropped region
+        fps (float): fps of the feed.
+
+    """
+
+    # Units: (pixels / frame) * (frames / second) / pixels ) = 1/s = rad/s
     ang_vel = (velocity * fps) / radius
     freq = ang_vel / (2 * math.pi)  # unit: 1/s
     return freq

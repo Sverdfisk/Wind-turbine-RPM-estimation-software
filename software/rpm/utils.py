@@ -9,8 +9,7 @@ def calculate_error_percentage(
         return None
 
     if measured_value is not None:
-        error_percentage = abs(
-            measured_value - actual_value) / actual_value * 100
+        error_percentage = abs(measured_value - actual_value) / actual_value * 100
     else:
         error_percentage = None
     return error_percentage
@@ -38,8 +37,7 @@ def print_statistics(
                 )
 
         print(f"Average rpm: {avg_rpm}")
-        print(f"Average RPM error percentage from real RPM: {
-              avg_error_from_real}%")
+        print(f"Average RPM error percentage from real RPM: {avg_error_from_real}%")
         print(f"Average of all error percentages: {avg_error}%")
 
     else:

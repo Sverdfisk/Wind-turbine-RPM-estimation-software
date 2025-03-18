@@ -6,6 +6,17 @@ from .feed import feed
 
 
 class OpticalFlow(feed.RpmFromFeed):
+    """
+    One way-too-large class. Contains methods for algorithm initialization,
+    and logic for handling motion vectors.
+    Also contains logic for drawing deadzones and manipulations to tweak the
+    active regions of optical flow calculations.
+
+    Args:
+        **kwargs (dict from JSON-config file): see software/config/config_template.json.
+
+    """
+
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
             setattr(self, key, value)

@@ -7,6 +7,17 @@ from collections import deque
 
 
 class BoundingBox:
+    """
+    Wrapper class for bounding box sub-regions.
+    Helps with instantiation of regions.
+
+    Args:
+        center (tuple): Coordinate specifying the centerpoint of the bounding box.
+        size: (int): specifies the "radius" of the box.
+        region (slice:slice): specifies a region (yslice, xslice) as an alternative to center coordinate + size
+
+    """
+
     def __init__(self, center, size, region):
         self.center = center
         self.size = size
@@ -53,6 +64,14 @@ class BoundingBox:
 
 
 class DetectBlade:
+    """
+    Wrapper class for blade detection mechanisms. Intended to be used in composition.
+
+    Args:
+        parent (class): The composition parent.
+
+    """
+
     def __init__(self, parent):
         self.parent = parent
 
@@ -75,6 +94,14 @@ class DetectBlade:
 
 
 class Draw:
+    """
+    Wrapper class for drawing mehanisms and related utilities.
+
+    Args:
+        parent (class): The composition parent.
+
+    """
+
     def __init__(self, parent):
         self.parent = parent
 
@@ -124,6 +151,14 @@ class Draw:
 
 
 class FrameBuffer:
+    """
+    A wrapper class for initialized deques. Contains methods that simplify the trivial stuff.
+
+    Args:
+        parent (class): The composition parent.
+
+    """
+
     def __init__(self, parent):
         self.parent = parent
         self.average_delta = 0
@@ -158,6 +193,16 @@ class FrameBuffer:
 
 
 class BpmCascade(feed.RpmFromFeed):
+    """
+    The main class. Contains and/or utilizes the other classes in some way or another.
+    "Cascades" bounding boxes; meaning that it contains logic for repeating N boxes
+    as separate detection regions. Contains logic for managing these regions.
+
+    Args:
+        **kwargs (dict from JSON-config file): see software/config/config_template.json.
+
+    """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         for key, value in kwargs.items():
