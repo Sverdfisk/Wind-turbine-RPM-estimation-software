@@ -1,4 +1,5 @@
 import cv2 as cv
+import numpy as np
 from collections import deque
 from rpm import opticalflow
 from rpm import bpm_cascade
@@ -11,32 +12,37 @@ import argparse
 
 
 def main(feed, params):
+    # TODO: refactor the entirety of opticalflow.py
+    #  Flow method setup
     rpms = []
     errors = []
     if isinstance(feed, opticalflow.OpticalFlow):
         while True:
             if feed.isActive:
+                # Gets optical flow vectors (automatically fetches frames)
                 data, image = feed.get_optical_flow_vectors()
 
-                # Intentional short circuit
-                if (
-                    data is not None
-                    and all(arr.size == 0 for arr in data)
-                    or (image is None)
-                ):
+                #  Avoids a crash when OpenCV gets an empty frame
+                if image is None:
                     continue
 
-                # The data indices have pixel positions,
-                motion_vectors = data[0] - data[1]
-                scaled_vectors = motion_vectors * feed.rpm_scaling_factor
-                rpm = feed.calculate_rpm_from_vectors(scaled_vectors)
+                # if tracking is successful, data will not have None
+                if all(x is not None for x in data):
+                    motion_vectors = data[0] - data[1]
+                    scaled_vectors = motion_vectors * feed.rpm_scaling_factor
+                    rpm = feed.calculate_rpm_from_vectors(scaled_vectors)
+                    flow_image = feed.draw_optical_flow(image, data[1], data[0])
 
-                # Ensure that dead frames do not get counted
+                # Set some defaults that we filter out if tracking is unsuccessful
+                else:
+                    rpm = None
+                    flow_image = image
+
+                # Find RPM and error rate
                 if rpm is not None:
                     rpms.append(rpm)
                     error = utils.calculate_error_percentage(rpm, params["real_rpm"])
                     errors.append(error)
-                flow_image = feed.draw_optical_flow(image, data[1], data[0])
 
                 # This MUST be called to refresh frames.
                 cv.imshow("Image feed", flow_image)
@@ -45,43 +51,56 @@ def main(feed, params):
                     break
 
             else:
-                # TODO: refactor this
+                #  Logging is handled externally if the script is run from multirunner.py
                 if __name__ == "__main__":
                     if args.log:
                         utils.write_output(params["id"], 0, rpms, params["real_rpm"])
+                else:
+                    return rpms, errors
                 break
 
-        return rpms, errors
-
     elif isinstance(feed, bpm_cascade.BpmCascade):
+        # TODO: These config options should be set in the config files
         frame = feed.get_frame()
-        box_params = (3, 2)
+        box_params = (params["num_boxes"], params["box_size"])
         out = []
-        bounds = feed.cascade_bounding_boxes(*box_params, queue_length=3)
+        bounds = feed.cascade_bounding_boxes(*box_params, params["frame_buffer_size"])
+        kernel_er_dil_params = (
+            params["erosion_dilation_kernel_size"],
+            params["dilation_iterations"],
+            params["erosion_iterations"],
+        )
+        #  deque for ease of use, we only need the last 2 ticks to measure tick time
         frame_ticks = deque(maxlen=2)
         toggle = True
 
         while True:
             if feed.isActive:
+                # To start, we set up the bounding boxes for the algorithm
                 # Each box gets its own frame buffer, organized by the box index
                 for frame_buffer_index, bounding_box in enumerate(bounds):
                     # Do processing
                     processed_region = bounding_box.detect_blade.dilation_erosion(
-                        frame, (6, 6), 10, 20
+                        frame, *kernel_er_dil_params
                     )
 
-                    # Save processed regions in frame buffer
+                    # Save processed regions/subimages in frame buffer
                     feed.fb.insert(frame_buffer_index, processed_region)
+
                     # Draw processing
                     frame = bounding_box.draw.processing_results(
                         frame, bounding_box.region, processed_region
                     )
 
-                if feed.frame_cnt % 2 == 0:
+                # Updating the average less frequently reduces susceptibility to noise,
+                # but reduces sensitivity to color change. A good value
+                # could be between 2-5
+                if feed.frame_cnt % params["color_delta_update_frequency"] == 0:
                     feed.fb.update_averages()
 
-                # toggle has reset and we get a blade detection
-                if feed.fb.average > 0 and toggle:
+                # toggle has reset and we get a big color difference spike
+                # note: the spike increases with box size and number of boxes
+                if feed.fb.average_delta > 2 and toggle:
                     # Note the frame we detect the blade
                     frame_ticks.append(feed.frame_cnt)
 
@@ -95,17 +114,9 @@ def main(feed, params):
                     # Stop additional triggers until we've stabilized
                     toggle = False
 
-                print(
-                    f"frame: {feed.frame_cnt} - color diff: {
-                        feed.fb.average
-                    } - detect enabled: {toggle} - latest measured RPM: {
-                        0 if out == [] else round(out[-1], 1)
-                    } - last detection at: {
-                        None if frame_ticks == deque(maxlen=2) else frame_ticks[-1]
-                    }"
-                )
+                feed.print_useful_stats(out, frame_ticks, toggle)
 
-                if feed.fb.average == 0:
+                if -1 < feed.fb.average_delta < 1:
                     toggle = True
 
                 # This MUST be called to refresh frames.
@@ -116,11 +127,19 @@ def main(feed, params):
 
                 frame = feed.get_frame()
             else:
-                # utils.log
+                if __name__ == "__main__":
+                    avg_rpm = list(set(out))
+                    if args.log:
+                        utils.write_output(params["id"], 0, avg_rpm, None)
+                    return (
+                        avg_rpm,
+                        None,
+                    )  # Fix this!!!! Should return actual error percentage
                 break
 
 
 if __name__ == "__main__":
+    np.set_printoptions(threshold=np.inf)
     parser = argparse.ArgumentParser()
     parser.add_argument("cfg")
     parser.add_argument(

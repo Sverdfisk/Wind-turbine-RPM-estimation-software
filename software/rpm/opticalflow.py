@@ -201,13 +201,15 @@ class OpticalFlow(feed.RpmFromFeed):
 
         return cv.add(self.mask, image)
 
-    def get_optical_flow_vectors(self) -> tuple:
+    def get_optical_flow_vectors(
+        self,
+    ) -> tuple[tuple[list | None, list | None], np.ndarray | None]:
         good_old = []
         good_new = []
         prev_frame_gray = cv.cvtColor(self.prev_frame, cv.COLOR_BGR2GRAY)
         new_frame = self.get_frame()
         if not self.isActive:
-            return (None, None)
+            return ((None, None), None)
 
         new_frame_gray = cv.cvtColor(new_frame, cv.COLOR_BGR2GRAY)
 
@@ -227,4 +229,4 @@ class OpticalFlow(feed.RpmFromFeed):
         # Set the new frame to be considered "old" for next call
         self.prev_frame = new_frame
 
-        return (good_new, good_old), new_frame
+        return ((good_new, good_old), new_frame)
