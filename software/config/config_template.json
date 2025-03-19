@@ -26,6 +26,8 @@
   "adjust_num_boxes": "bool. Keeps the target number of boxes, but resizes them so that they fit inside the image. Example value: true",
   "target_num_boxes": "int. The desired number of boxes to cascade. Example value: 10",
   "target_box_size": "int. The target size of the boxes that will be cascaded. The side length of the boxes will be equivalent to 2*target_box_size. Example value: 5",
+  "box_start_index": "int. Specifies at which box index to start at from the center/start of cascade. At value 2, for example, the first 3 boxes will not be created. At value 0, all boxes will be created. Example value: 3",
+  "trim_last_n_boxes": "int. Specifies how many boxes to cut off at the end of the cascade. At value 2, for example, the 2 last boxes will not be created. At value 0, no boxes at the end will be trimmed away. Example value: 1",
   "frame_buffer_size": "int. Each box has a frame buffer to store N previous frames. This parameter specifies how large that buffer is. A larger buffer means less sensitivity to noise, but less pronounced peaks. Example value: 5",
   "color_delta_update_frequency": "int. The interval in frames to wait before updating the average. Updating the average frequently will make color changes more gradual/granular, but is susceptible to noise. Example value: 2"
 }
