@@ -60,9 +60,13 @@ def main(feed, params):
                 break
 
     elif isinstance(feed, bpm_cascade.BpmCascade):
-        # TODO: These config options should be set in the config files
         frame = feed.get_frame()
-        box_params = (params["num_boxes"], params["box_size"])
+        box_params = feed.fit_box_parameters_to_radius(
+            params["target_num_boxes"],
+            params["target_box_size"],
+            resize_boxes=params["resize_boxes"],
+            adjust_num_boxes=params["adjust_num_boxes"],
+        )
         out = []
         bounds = feed.cascade_bounding_boxes(*box_params, params["frame_buffer_size"])
         kernel_er_dil_params = (

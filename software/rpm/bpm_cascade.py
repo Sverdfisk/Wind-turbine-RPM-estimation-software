@@ -215,8 +215,8 @@ class BpmCascade(feed.RpmFromFeed):
         self.draw = Draw(self)
         self.fb = FrameBuffer(self)
         self.quadrant: int
-        self.no_x: bool
-        self.no_y: bool
+        self.stack_boxes_vertically: bool
+        self.stack_boxes_horizontally: bool
 
     def _generate_axis_mapping(self) -> tuple[int, int]:
         axes = (1, -1)
@@ -275,9 +275,23 @@ class BpmCascade(feed.RpmFromFeed):
         return hyp_length
 
     def boxes_in_radius(self, box_size: int) -> int:
-        box_diagonal = round(2 * box_size * math.sqrt(2))
-        num_boxes = math.floor(self.hypotenuse_length / box_diagonal)
-        return num_boxes
+        # In the horizontal or vertical stacking cases,
+        # using the radius to the middle of a box's side
+        # is better
+
+        box_diameter = 2 * box_size
+        if self.stack_boxes_vertically:
+            num_boxes = math.floor(self.radius_y / box_diameter)
+            return num_boxes
+        elif self.stack_boxes_horizontally:
+            num_boxes = math.floor(self.radius_x / box_diameter)
+            return num_boxes
+
+        # Diagonal case
+        else:
+            box_diagonal = round(2 * box_size * math.sqrt(2))
+            num_boxes = math.floor(self.hypotenuse_length / box_diagonal)
+            return num_boxes
 
     # TODO: implement this. Supposed to readjust box number and size parameters
     # to make them fit within the frame, avoiding crashes
@@ -285,7 +299,7 @@ class BpmCascade(feed.RpmFromFeed):
         self,
         wanted_box_size: int,
         wanted_num_boxes: int,
-        resize_boxes: bool = True,
+        resize_boxes: bool = False,
         adjust_num_boxes: bool = False,
     ) -> tuple[int, int]:
         # Calculate how many boxes can fit with the current box size:
@@ -295,37 +309,29 @@ class BpmCascade(feed.RpmFromFeed):
         result_boxes = wanted_num_boxes
         result_size = wanted_box_size
 
-        # Case 1: The current request goes out of bounds
+        # Case 1: The current request goes out of bounds (too many boxes for the size).
         if wanted_num_boxes > box_limit:
             if adjust_num_boxes:
-                # The current limit finder always undershoots, so this is safe
-                result_boxes = box_limit  # - 1
-
+                # Instead of resizing, adjust the box count to the maximum available.
+                result_boxes = box_limit
             elif resize_boxes:
-                # Reduce the box size until it can hold the desired box count
-                while True:
+                # Reduce the box size until it can hold the desired number of boxes.
+                while (
+                    result_size > 1
+                    and self.boxes_in_radius(result_size) < wanted_num_boxes
+                ):
                     result_size -= 1
-                    new_box_amount = self.boxes_in_radius(result_size)
-                    if new_box_amount <= wanted_num_boxes:
-                        break
-
-        # Case B: The user is within bounds
         else:
-            # 1) If set, expand box size to the largest possible until it no longer fits
+            # Case 2: The user is within bounds.
             if resize_boxes:
-                while True:
-                    if self.boxes_in_radius(result_size) < wanted_num_boxes:
-                        break
+                # Expand box size until increasing it further would mean to reduce the number of boxes to fit.
+                while self.boxes_in_radius(result_size + 1) >= wanted_num_boxes:
                     result_size += 1
-
-            # 2) If set, increase the number of boxes until adding one more goes out of bounds
-            if adjust_num_boxes:
-                while True:
-                    if self.boxes_in_radius(result_size) >= result_boxes:
-                        break
+            elif adjust_num_boxes:
+                # Increase the number of boxes until adding one more would exceed the available capacity.
+                while self.boxes_in_radius(result_size) >= result_boxes + 1:
                     result_boxes += 1
 
-        # Store the final ‘safe’ parameters
         return (result_boxes, result_size)
 
     def _initialize_frame_buffers(
@@ -346,10 +352,16 @@ class BpmCascade(feed.RpmFromFeed):
         self._initialize_frame_buffers(num_boxes, frame_buffer_size)
 
         #  TODO: figure out a smarter way to do this axis stuff
-        delta_y = 0 if self.no_y else box_size * \
-            (2 * self.quadrant_axis_map[1])
-        delta_x = 0 if self.no_x else box_size * \
-            (2 * self.quadrant_axis_map[0])
+        delta_y = (
+            0
+            if self.stack_boxes_horizontally
+            else box_size * (2 * self.quadrant_axis_map[1])
+        )
+        delta_x = (
+            0
+            if self.stack_boxes_vertically
+            else box_size * (2 * self.quadrant_axis_map[0])
+        )
 
         offset_y = (
             self.corner[1]
