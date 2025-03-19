@@ -49,6 +49,13 @@ def calculate_frequency(velocity: float, radius: int, fps: float) -> float:
 
 
 def filter_magnitudes(magnitudes: np.ndarray) -> np.ndarray:
+    """
+    Finds the standard deviation within a given list, and filters out all elements above/below 2 standard deviations.
+    Args:
+        magnitudes (np.ndarray): list of magnitudes
+
+    """
+
     magnitudes = np.array(magnitudes)
     std_dev = np.std(magnitudes)
     mean = np.mean(magnitudes)
@@ -61,8 +68,17 @@ def filter_magnitudes(magnitudes: np.ndarray) -> np.ndarray:
 
 
 def get_rpm_from_flow_vectors(
-    velocity_vectors: np.ndarray, radius, fps: float
+    velocity_vectors: np.ndarray, radius: int, fps: float
 ) -> None | float:
+    """
+    Finds the magnitudes from velocity vectors. Filters out the outliers, then averages all the values.
+    Uses the magnitude vector as a velocity vector for RPM calculation.
+    Args:
+        velocity_vectors (np.ndarray[np.ndarray[float]]): a list containing velocity vectors (2 element lists containing floats)
+        radius (int): the radius of the image
+        fps (float): FPS of the video feed
+    """
+
     if velocity_vectors.size == 0:
         return None
 
@@ -79,8 +95,16 @@ def get_rpm_from_flow_vectors(
 
 
 def calculate_rpm_from_frame_time(frame_time: int, fps: float) -> float:
+    """
+    Used in bpm cascade mode. Calculates BPM based on the time between blade detections.
+
+    Args:
+        frame_time (int): time between blade detections given in frames
+        fps (float): FPS of the video feed
+    """
+
     real_time = frame_time / fps
-    # Any blade triggers a tick, luckily they
+    # Any of the 3 blades can trigger a tick, luckily they
     # are evenly spaced 120 degrees apart
     adjusted_ticktime_seconds = real_time * 3
     return 60 / adjusted_ticktime_seconds
