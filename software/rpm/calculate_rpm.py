@@ -49,13 +49,14 @@ def calculate_frequency(velocity: float, radius: int, fps: float) -> float:
 
 
 def filter_magnitudes(magnitudes: np.ndarray) -> np.ndarray:
+
     """
     Finds the standard deviation within a given list, and filters out all elements above/below 2 standard deviations.
     Args:
         magnitudes (np.ndarray): list of magnitudes
 
     """
-
+    
     magnitudes = np.array(magnitudes)
     std_dev = np.std(magnitudes)
     mean = np.mean(magnitudes)
@@ -78,9 +79,6 @@ def get_rpm_from_flow_vectors(
         radius (int): the radius of the image
         fps (float): FPS of the video feed
     """
-
-    if velocity_vectors.size == 0:
-        return None
 
     magnitudes = []
     for vector in velocity_vectors:
