@@ -6,10 +6,28 @@ from .feed import feed
 
 
 class OpticalFlow(feed.RpmFromFeed):
+    """
+    One way-too-large class. Contains methods for algorithm initialization,
+    and logic for handling motion vectors.
+    Also contains logic for drawing deadzones and manipulations to tweak the
+    active regions of optical flow calculations.
+
+    Args:
+        **kwargs (dict from JSON-config file): see software/config/config_template.json.
+
+    """
+
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
             setattr(self, key, value)
         super().__init__(**kwargs)
+        self.ground_angle: float
+        self.deadzone_size: tuple[int, int]
+        self.deadzone_shape: str
+        self.deadzone_offset_x: int
+        self.deadzone_offset_y: int
+        self.pixel_threshold: int
+
         self._set_initial_frame(self.ground_angle)
         self._set_mask_size()
 
@@ -63,23 +81,25 @@ class OpticalFlow(feed.RpmFromFeed):
             ground_angle, perspective_rotation_angle
         )
         # Squareify the image to somewhat un-distort perspective
-        pts_src = np.float32(
+        pts_src = np.array(
             [
                 [0, 0],  # top-left
                 [self.w - 1, 0],  # top-right
                 [self.w - 1, self.h - 1],  # bottom-right
                 [0, self.h - 1],
-            ]
+            ],
+            dtype=np.float32,
         )  # bottom-left
 
         new_h = self.h if (self.h > self.w) else self.w
-        pts_dst = np.float32(
+        pts_dst = np.array(
             [
                 [0, 0],  # top-left in the new image
                 [new_h, 0],  # top-right in the new image
                 [new_h, new_h],  # bottom-right in the new image
                 [0, new_h],
-            ]
+            ],
+            dtype=np.float32,
         )  # bottom-left in the new image
 
         self.translation_matrix = cv.getPerspectiveTransform(pts_src, pts_dst)
@@ -114,9 +134,7 @@ class OpticalFlow(feed.RpmFromFeed):
         params = dict(winSize=winSize, maxLevel=maxLevel, criteria=criteria)
         return params
 
-    def translate_coords_to_center(
-        self, image_height: int, image_width: int, sizex: int = 0, sizey: int = 0
-    ) -> list:
+    def translate_coords_to_center(self, sizex: int = 0, sizey: int = 0) -> list:
         center = self.get_center_pixel()
         x_left = center[1] - sizex
         x_right = center[1] + sizex
@@ -167,7 +185,7 @@ class OpticalFlow(feed.RpmFromFeed):
         cv.circle(mask, (radius_x, radius_y), radius, (0, 0, 0), -1)
         return mask
 
-    def calculate_rpm_from_vectors(self, motion_vectors):
+    def calculate_rpm_from_vectors(self, motion_vectors) -> float | None:
         return crpm.get_rpm_from_flow_vectors(motion_vectors, self.radius_max, self.fps)
 
     def draw_optical_flow(
@@ -194,11 +212,15 @@ class OpticalFlow(feed.RpmFromFeed):
 
         return cv.add(self.mask, image)
 
-    def get_optical_flow_vectors(self) -> tuple:
+    def get_optical_flow_vectors(
+        self,
+    ) -> tuple[tuple[list | None, list | None], np.ndarray | None]:
+        good_old = []
+        good_new = []
         prev_frame_gray = cv.cvtColor(self.prev_frame, cv.COLOR_BGR2GRAY)
         new_frame = self.get_frame()
         if not self.isActive:
-            return (None, None)
+            return ((None, None), None)
 
         new_frame_gray = cv.cvtColor(new_frame, cv.COLOR_BGR2GRAY)
 
@@ -218,4 +240,4 @@ class OpticalFlow(feed.RpmFromFeed):
         # Set the new frame to be considered "old" for next call
         self.prev_frame = new_frame
 
-        return (good_new, good_old), new_frame
+        return ((good_new, good_old), new_frame)

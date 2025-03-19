@@ -7,6 +7,17 @@ from collections import deque
 
 
 class BoundingBox:
+    """
+    Wrapper class for bounding box sub-regions.
+    Helps with instantiation of regions.
+
+    Args:
+        center (tuple): Coordinate specifying the centerpoint of the bounding box.
+        size: (int): specifies the "radius" of the box.
+        region (slice:slice): specifies a region (yslice, xslice) as an alternative to center coordinate + size
+
+    """
+
     def __init__(self, center, size, region):
         self.center = center
         self.size = size
@@ -53,6 +64,14 @@ class BoundingBox:
 
 
 class DetectBlade:
+    """
+    Wrapper class for blade detection mechanisms. Intended to be used in composition.
+
+    Args:
+        parent (class): The composition parent.
+
+    """
+
     def __init__(self, parent):
         self.parent = parent
 
@@ -71,10 +90,18 @@ class DetectBlade:
         return processed_subregion
 
     def calculate_rpm(self, frame_time: int, fps: float) -> float:
-        return crpm.calculate_rpm(frame_time, fps)
+        return crpm.calculate_rpm_from_frame_time(frame_time, fps)
 
 
 class Draw:
+    """
+    Wrapper class for drawing mehanisms and related utilities.
+
+    Args:
+        parent (class): The composition parent.
+
+    """
+
     def __init__(self, parent):
         self.parent = parent
 
@@ -123,9 +150,17 @@ class Draw:
 
 
 class FrameBuffer:
+    """
+    A wrapper class for initialized deques. Contains methods that simplify the trivial stuff.
+
+    Args:
+        parent (class): The composition parent.
+
+    """
+
     def __init__(self, parent):
         self.parent = parent
-        self.average = 0
+        self.average_delta = 0
 
     def insert(self, buffer: int, region: np.ndarray) -> None:
         # Store the processed regions and nice-to-haves in the buffer
@@ -153,10 +188,20 @@ class FrameBuffer:
         for fb in self.parent.frame_buffers:
             for entry in fb:
                 vals.append(entry["intensity_delta"])
-        self.average = round(np.mean(vals))
+        self.average_delta = round(np.mean(vals))
 
 
 class BpmCascade(feed.RpmFromFeed):
+    """
+    The main class. Contains and/or utilizes the other classes in some way or another.
+    "Cascades" bounding boxes; meaning that it contains logic for repeating N boxes
+    as separate detection regions. Contains logic for managing these regions.
+
+    Args:
+        **kwargs (dict from JSON-config file): see software/config/config_template.json.
+
+    """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         for key, value in kwargs.items():
@@ -168,6 +213,11 @@ class BpmCascade(feed.RpmFromFeed):
         self.quadrant_axis_map = self._generate_axis_mapping()
         self.draw = Draw(self)
         self.fb = FrameBuffer(self)
+        self.quadrant: int
+        self.stack_boxes_vertically: bool
+        self.stack_boxes_horizontally: bool
+        self.trim_last_n_boxes: int
+        self.box_start_index: int
 
     def _generate_axis_mapping(self) -> tuple[int, int]:
         axes = (1, -1)
@@ -192,6 +242,17 @@ class BpmCascade(feed.RpmFromFeed):
         corner_pixel = all_corners[list_index]
         return corner_pixel
 
+    def print_useful_stats(self, out: list, frame_ticks: deque, toggle: bool) -> None:
+        print(
+            f"frame: {self.frame_cnt} - color diff: {
+                self.fb.average_delta
+            } - detect enabled: {toggle} - latest measured RPM: {
+                0 if out == [] else round(out[-1], 1)
+            } - last detection at: {
+                None if frame_ticks == deque(maxlen=2) else frame_ticks[-1]
+            }"
+        )
+
     def _get_quadrant_subsection_slice(self) -> tuple[slice, slice]:
         #  This is hardcoded and absolutely awful. I'm sorry
         #  The slice bounds are absolute, while the quadrants
@@ -215,9 +276,23 @@ class BpmCascade(feed.RpmFromFeed):
         return hyp_length
 
     def boxes_in_radius(self, box_size: int) -> int:
-        box_diagonal = round(2 * box_size * math.sqrt(2))
-        num_boxes = math.floor(self.hypotenuse_length / box_diagonal)
-        return num_boxes
+        # In the horizontal or vertical stacking cases,
+        # using the radius to the middle of a box's side
+        # is better
+
+        box_diameter = 2 * box_size
+        if self.stack_boxes_vertically:
+            num_boxes = math.floor(self.radius_y / box_diameter)
+            return num_boxes
+        elif self.stack_boxes_horizontally:
+            num_boxes = math.floor(self.radius_x / box_diameter)
+            return num_boxes
+
+        # Diagonal case
+        else:
+            box_diagonal = round(2 * box_size * math.sqrt(2))
+            num_boxes = math.floor(self.hypotenuse_length / box_diagonal)
+            return num_boxes
 
     # TODO: implement this. Supposed to readjust box number and size parameters
     # to make them fit within the frame, avoiding crashes
@@ -225,7 +300,7 @@ class BpmCascade(feed.RpmFromFeed):
         self,
         wanted_box_size: int,
         wanted_num_boxes: int,
-        resize_boxes: bool = True,
+        resize_boxes: bool = False,
         adjust_num_boxes: bool = False,
     ) -> tuple[int, int]:
         # Calculate how many boxes can fit with the current box size:
@@ -235,67 +310,74 @@ class BpmCascade(feed.RpmFromFeed):
         result_boxes = wanted_num_boxes
         result_size = wanted_box_size
 
-        # Case 1: The current request goes out of bounds
+        # Case 1: The current request goes out of bounds (too many boxes for the size).
         if wanted_num_boxes > box_limit:
             if adjust_num_boxes:
-                # The current limit finder always undershoots, so this is safe
-                result_boxes = box_limit  # - 1
-
+                # Instead of resizing, adjust the box count to the maximum available.
+                result_boxes = box_limit
             elif resize_boxes:
-                # Reduce the box size until it can hold the desired box count
-                while True:
+                # Reduce the box size until it can hold the desired number of boxes.
+                while (
+                    result_size > 1
+                    and self.boxes_in_radius(result_size) < wanted_num_boxes
+                ):
                     result_size -= 1
-                    new_box_amount = self.boxes_in_radius(result_size)
-                    if new_box_amount <= wanted_num_boxes:
-                        break
-
-        # Case B: The user is within bounds
         else:
-            # 1) If set, expand box size to the largest possible until it no longer fits
+            # Case 2: The user is within bounds.
             if resize_boxes:
-                while True:
-                    if self.boxes_in_radius(result_size) < wanted_num_boxes:
-                        break
+                # Expand box size until increasing it further would mean to reduce the number of boxes to fit.
+                while self.boxes_in_radius(result_size + 1) >= wanted_num_boxes:
                     result_size += 1
-
-            # 2) If set, increase the number of boxes until adding one more goes out of bounds
-            if adjust_num_boxes:
-                while True:
-                    if self.boxes_in_radius(result_size) >= result_boxes:
-                        break
+            elif adjust_num_boxes:
+                # Increase the number of boxes until adding one more would exceed the available capacity.
+                while self.boxes_in_radius(result_size) >= result_boxes + 1:
                     result_boxes += 1
 
-        # Store the final ‘safe’ parameters
         return (result_boxes, result_size)
 
-    def _initialize_queues(self, num_queues: int, queue_length: int) -> None:
+    def _initialize_frame_buffers(
+        self, num_buffers: int, frame_buffer_length: int
+    ) -> None:
         self.frame_buffers = []
         self.frame_buffer_averages = []
-        for _ in range(num_queues):
-            self.frame_buffers.append(deque(maxlen=queue_length))
+        for _ in range(num_buffers):
+            self.frame_buffers.append(deque(maxlen=frame_buffer_length))
 
     def cascade_bounding_boxes(
-        self, num_boxes: int, box_size, queue_length: int = 5
+        self,
+        num_boxes: int,
+        box_size,
+        frame_buffer_size: int = 5,
     ) -> list[BoundingBox]:
         bounds = []
-        self._initialize_queues(num_boxes, queue_length)
+        self._initialize_frame_buffers(num_boxes, frame_buffer_size)
+
         #  TODO: figure out a smarter way to do this axis stuff
+        delta_y = (
+            0
+            if self.stack_boxes_horizontally
+            else box_size * (2 * self.quadrant_axis_map[1])
+        )
+        delta_x = (
+            0
+            if self.stack_boxes_vertically
+            else box_size * (2 * self.quadrant_axis_map[0])
+        )
+
         offset_y = (
             self.corner[1]
             - self.center_of_frame[1]
             + (box_size * self.quadrant_axis_map[1] - 1)
         )
-        delta_y = box_size * (2 * self.quadrant_axis_map[1])
-
         offset_x = (
             self.corner[0]
             - self.center_of_frame[0]
             + (box_size * self.quadrant_axis_map[0])
         )
-        delta_x = box_size * (2 * self.quadrant_axis_map[0])
 
-        for i in range(num_boxes):
-            box_x = round(offset_x)
+        box_range = slice(self.box_start_index, num_boxes - self.trim_last_n_boxes)
+        for i in range(box_range.start, box_range.stop):
+            box_x = round(offset_x + delta_x * i)
             box_y = round(offset_y + delta_y * i)
             box_center = (box_x, box_y)
             bounds.append(BoundingBox.from_center_and_size(box_center, box_size))
