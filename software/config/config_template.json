@@ -1,5 +1,6 @@
 {
   "note": "This template is not designed to be used as valid JSON. Copy it and change the fields accordingly.",
+  "note2": "UI is work in progress :)",
   "----GENERAL PARAMETERS----": "",
   "id": "int. identifier for use in logging to separate runs. Additional runs with the same id value will append results to the same location. Example values: 1, 2, 999123",
   "mode": "string, either 'bpm' or 'opticalflow'. Sets the calculation mode of the program.",
