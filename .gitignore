@@ -178,6 +178,7 @@ cython_debug/
 **/*.csv
 
 software/assets/*
+!software/assets/*.mov
 software/config/*.json
 #  Keep the config template
 !software/config/config_template.json
