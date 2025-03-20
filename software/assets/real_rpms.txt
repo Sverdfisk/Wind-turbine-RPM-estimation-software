@@ -1,0 +1,8 @@
+gtav_rear_fog_lowcontrastmemes_f24=20
+gtav_front_fog_lowcontrastmemes_f24=17.777777
+gtav_rear_fog_contrastmemes_f24=18.113207
+gtav_contrastmemes_front_f24=10.909090
+gtav_side_smokestack_f24=17.7777777
+gtav_obstructed_day_front_f24=16.551724
+gtav_night_front_f24=20.86956
+gtav_fog_rear_f24=20
