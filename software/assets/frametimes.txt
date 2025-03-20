@@ -1,0 +1,8 @@
+gtav_rear_fog_lowcontrastmemes_f24 = 24*3
+gtav_front_fog_lowcontrastmemes_f24 = 27*3
+gtav_rear_fog_contrastmemes_f24 = 26.5*3
+gtav_contrastmemes_front_f24 = 44*3
+gtav_side_smokestack_f24 = 27*3
+gtav_obstructed_day_front_f24 = 29*3
+gtav_night_front_f24 = 23*3
+gtav_fog_rear_f24 = 24*3
