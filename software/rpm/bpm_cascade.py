@@ -148,6 +148,17 @@ class Draw:
         frame[region] = value
         return frame
 
+    def border_around_region(self, image: np.ndarray, thickness: int, color: list[int]):
+        h, w = image.shape[:2]
+        cv.rectangle(
+            image,
+            (0, 0),
+            (w - 1, h - 1),
+            color,
+            thickness=thickness,
+        )
+        return image
+
 
 class FrameBuffer:
     """
@@ -294,44 +305,47 @@ class BpmCascade(feed.RpmFromFeed):
             num_boxes = math.floor(self.hypotenuse_length / box_diagonal)
             return num_boxes
 
-    # TODO: implement this. Supposed to readjust box number and size parameters
-    # to make them fit within the frame, avoiding crashes
     def fit_box_parameters_to_radius(
         self,
-        wanted_box_size: int,
         wanted_num_boxes: int,
+        wanted_box_size: int,
         resize_boxes: bool = False,
         adjust_num_boxes: bool = False,
     ) -> tuple[int, int]:
         # Calculate how many boxes can fit with the current box size:
-        box_limit = self.boxes_in_radius(wanted_box_size)
+        initial_box_limit = self.boxes_in_radius(wanted_box_size)
 
         # Initialize as an ideal request
         result_boxes = wanted_num_boxes
         result_size = wanted_box_size
 
         # Case 1: The current request goes out of bounds (too many boxes for the size).
-        if wanted_num_boxes > box_limit:
+        if wanted_num_boxes > initial_box_limit:
             if adjust_num_boxes:
                 # Instead of resizing, adjust the box count to the maximum available.
-                result_boxes = box_limit
+                result_boxes = initial_box_limit
+
             elif resize_boxes:
                 # Reduce the box size until it can hold the desired number of boxes.
-                while (
-                    result_size > 1
-                    and self.boxes_in_radius(result_size) < wanted_num_boxes
-                ):
-                    result_size -= 1
+                while True:
+                    if self.boxes_in_radius(result_size) < wanted_num_boxes:
+                        result_size -= 1
+                    else:
+                        break
+
+        # Case 2: The user is within bounds.
         else:
-            # Case 2: The user is within bounds.
             if resize_boxes:
-                # Expand box size until increasing it further would mean to reduce the number of boxes to fit.
-                while self.boxes_in_radius(result_size + 1) >= wanted_num_boxes:
-                    result_size += 1
+                # Expand box size until increasing it further would mean we are out of bounds
+                while True:
+                    if self.boxes_in_radius(result_size + 1) <= initial_box_limit:
+                        result_size += 1
+                    else:
+                        break
+
             elif adjust_num_boxes:
-                # Increase the number of boxes until adding one more would exceed the available capacity.
-                while self.boxes_in_radius(result_size) >= result_boxes + 1:
-                    result_boxes += 1
+                # We are within bounds, and we can just set the number of boxes to be the max
+                result_boxes = initial_box_limit
 
         return (result_boxes, result_size)
 

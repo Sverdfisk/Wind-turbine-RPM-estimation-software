@@ -31,7 +31,8 @@ def main(feed, params):
                     motion_vectors = data[0] - data[1]
                     scaled_vectors = motion_vectors * feed.rpm_scaling_factor
                     rpm = feed.calculate_rpm_from_vectors(scaled_vectors)
-                    flow_image = feed.draw_optical_flow(image, data[1], data[0])
+                    flow_image = feed.draw_optical_flow(
+                        image, data[1], data[0])
 
                 # Set some defaults that we filter out if tracking is unsuccessful
                 else:
@@ -41,7 +42,8 @@ def main(feed, params):
                 # Find RPM and error rate
                 if rpm is not None:
                     rpms.append(rpm)
-                    error = utils.calculate_error_percentage(rpm, params["real_rpm"])
+                    error = utils.calculate_error_percentage(
+                        rpm, params["real_rpm"])
                     errors.append(error)
 
                 # This MUST be called to refresh frames.
@@ -54,7 +56,8 @@ def main(feed, params):
                 #  Logging is handled externally if the script is run from multirunner.py
                 if __name__ == "__main__":
                     if args.log:
-                        utils.write_output(params["id"], 0, rpms, params["real_rpm"])
+                        utils.write_output(
+                            params["id"], 0, rpms, params["real_rpm"])
                 else:
                     return rpms, errors
                 break
@@ -68,7 +71,8 @@ def main(feed, params):
             adjust_num_boxes=params["adjust_num_boxes"],
         )
         out = []
-        bounds = feed.cascade_bounding_boxes(*box_params, params["frame_buffer_size"])
+        bounds = feed.cascade_bounding_boxes(
+            *box_params, params["frame_buffer_size"])
         kernel_er_dil_params = (
             params["erosion_dilation_kernel_size"],
             params["dilation_iterations"],
@@ -91,6 +95,11 @@ def main(feed, params):
                     # Save processed regions/subimages in frame buffer
                     feed.fb.insert(frame_buffer_index, processed_region)
 
+                    #  Draw a  border around the bounding box processed region
+                    #  call this after inserting the region into the frame buffer!!!!
+                    bounding_box.draw.border_around_region(
+                        processed_region, 1, [0, 255, 0]
+                    )
                     # Draw processing
                     frame = bounding_box.draw.processing_results(
                         frame, bounding_box.region, processed_region

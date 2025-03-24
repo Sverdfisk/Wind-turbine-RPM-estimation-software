@@ -5,18 +5,24 @@ import numpy as np
 class Feed:
     def __init__(self, **kwargs):
         self.crop_points = kwargs["crop_points"]
-        self._set_base_config(kwargs["target"], kwargs["fps"])
         self.frame_cnt = 0
+        self._set_base_config(kwargs["target"], kwargs["fps"])
 
     def _set_base_config(self, target, fps) -> None:
         self.target = target
         self.fps = fps
         self.video = cv.VideoCapture(self.target)
         self.video.set(cv.CAP_PROP_FPS, self.fps)
-        self.h = self.crop_points[0][1] - self.crop_points[0][0]
-        self.w = self.crop_points[1][1] - self.crop_points[1][0]
-        self.yrange = slice(self.crop_points[0][0], self.crop_points[0][1])
-        self.xrange = slice(self.crop_points[1][0], self.crop_points[1][1])
+        if self.crop_points is not None:
+            self.h = self.crop_points[0][1] - self.crop_points[0][0]
+            self.w = self.crop_points[1][1] - self.crop_points[1][0]
+            self.yrange = slice(self.crop_points[0][0], self.crop_points[0][1])
+            self.xrange = slice(self.crop_points[1][0], self.crop_points[1][1])
+        else:
+            img = self.get_frame()
+            self.h, self.w, self.ch = img.shape
+            self.yrange = slice(0, self.h)
+            self.xrange = slice(0, self.w)
 
     def get_frame(self) -> np.ndarray:
         ret, frame = self.video.read()
