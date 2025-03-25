@@ -181,9 +181,12 @@ software/assets/*
 !software/assets/*.mov
 !software/assets/real_rpms.txt
 software/config/*.json
+
 #  Keep the config template
 !software/config/config_template.json
 software/runs/*
 software/test.py
 software/middleman.py
+software/out.txt
+software/profile.txt
 software/ignorethis
