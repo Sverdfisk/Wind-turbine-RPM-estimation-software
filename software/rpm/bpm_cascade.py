@@ -1,4 +1,5 @@
 import cv2 as cv
+from . import utils
 import numpy as np
 from . import calculate_rpm as crpm
 from .feed import feed
@@ -63,6 +64,11 @@ class BoundingBox:
         return (center, sizex)
 
 
+class Training:
+    def __init__(self, parent):
+        self.parent = parent
+
+
 class DetectBlade:
     """
     Wrapper class for blade detection mechanisms. Intended to be used in composition.
@@ -76,6 +82,7 @@ class DetectBlade:
         self.parent = parent
 
     # Returns an array of altered pixels in its own region
+
     def dilation_erosion(
         self,
         frame: np.ndarray,
@@ -175,7 +182,7 @@ class FrameBuffer:
 
     def insert(self, buffer: int, region: np.ndarray) -> None:
         # Store the processed regions and nice-to-haves in the buffer
-        intensity = int(round(np.mean(region)))
+        intensity = np.mean(region)
 
         if len(self.parent.frame_buffers[buffer]) > 0:
             prev_frame_intensity = self.parent.frame_buffers[buffer][-1]["intensity"]
@@ -199,7 +206,7 @@ class FrameBuffer:
         for fb in self.parent.frame_buffers:
             for entry in fb:
                 vals.append(entry["intensity_delta"])
-        self.average_delta = round(np.mean(vals))
+        self.average_delta = round(np.mean(vals), 5)
 
 
 class BpmCascade(feed.RpmFromFeed):
@@ -224,11 +231,18 @@ class BpmCascade(feed.RpmFromFeed):
         self.quadrant_axis_map = self._generate_axis_mapping()
         self.draw = Draw(self)
         self.fb = FrameBuffer(self)
+        self.detection_enable_toggle = True
         self.quadrant: int
         self.stack_boxes_vertically: bool
         self.stack_boxes_horizontally: bool
         self.trim_last_n_boxes: int
         self.box_start_index: int
+
+        self.contrast_multiplier: float
+        if self.contrast_multiplier == 1:
+            self.adjust_contrast = False
+        else:
+            self.adjust_contrast = True
 
     def _generate_axis_mapping(self) -> tuple[int, int]:
         axes = (1, -1)
@@ -253,15 +267,29 @@ class BpmCascade(feed.RpmFromFeed):
         corner_pixel = all_corners[list_index]
         return corner_pixel
 
-    def print_useful_stats(self, out: list, frame_ticks: deque, toggle: bool) -> None:
+    def print_useful_stats(
+        self,
+        out: list = [],
+        frame_ticks: deque = deque(maxlen=1),
+        detection_enable_toggle: bool = True,
+        threshold: float = 0,
+        mode: float = 0,
+    ) -> None:
         print(
-            f"frame: {self.frame_cnt} - color diff: {
-                self.fb.average_delta
-            } - detect enabled: {toggle} - latest measured RPM: {
-                0 if out == [] else round(out[-1], 1)
-            } - last detection at: {
-                None if frame_ticks == deque(maxlen=2) else frame_ticks[-1]
-            }"
+            f"{utils.bcolors.HEADER}Frame: {self.frame_cnt}{
+                utils.bcolors.ENDC
+            } - Delta / Threshold / mode: {utils.bcolors.OKCYAN}{
+                utils.bcolors.UNDERLINE
+            }{self.fb.average_delta} / {round(threshold, 2)} / {round(mode, 1)}{
+                utils.bcolors.ENDC
+            } - {
+                'Detect Enabled' if detection_enable_toggle else 'Detect Disabled'
+            } - RPM: {utils.bcolors.BOLD}{0 if out == [] else round(out[-1], 3)}{
+                utils.bcolors.ENDC
+            } - Last detection {
+                self.frame_cnt
+                - (0 if frame_ticks == deque(maxlen=2) else frame_ticks[-1])
+            } frames ago"
         )
 
     def _get_quadrant_subsection_slice(self) -> tuple[slice, slice]:
@@ -285,6 +313,10 @@ class BpmCascade(feed.RpmFromFeed):
         ylen = abs(self.center_of_frame[1] - self.corner[1])
         hyp_length = math.sqrt((ylen**2) + (xlen**2))
         return hyp_length
+
+    def update_detection_enable_toggle(self, intensity_delta, threshold, mode):
+        if mode - threshold < intensity_delta < mode + threshold:
+            self.detection_enable_toggle = True
 
     def boxes_in_radius(self, box_size: int) -> int:
         # In the horizontal or vertical stacking cases,
@@ -353,7 +385,6 @@ class BpmCascade(feed.RpmFromFeed):
         self, num_buffers: int, frame_buffer_length: int
     ) -> None:
         self.frame_buffers = []
-        self.frame_buffer_averages = []
         for _ in range(num_buffers):
             self.frame_buffers.append(deque(maxlen=frame_buffer_length))
 

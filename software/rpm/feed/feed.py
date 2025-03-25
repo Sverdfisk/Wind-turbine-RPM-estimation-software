@@ -13,6 +13,7 @@ class Feed:
         self.fps = fps
         self.video = cv.VideoCapture(self.target)
         self.video.set(cv.CAP_PROP_FPS, self.fps)
+
         if self.crop_points is not None:
             self.h = self.crop_points[0][1] - self.crop_points[0][0]
             self.w = self.crop_points[1][1] - self.crop_points[1][0]
@@ -31,6 +32,8 @@ class Feed:
             self.frame_cnt += 1
         if self.crop_points is not None and ret:
             frame = frame[self.yrange, self.xrange]
+        if self.adjust_contrast:
+            frame = cv.convertScaleAbs(frame, alpha=self.contrast_multiplier)
         return frame
 
 
