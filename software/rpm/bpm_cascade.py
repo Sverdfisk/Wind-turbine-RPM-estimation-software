@@ -122,7 +122,8 @@ class Draw:
         yrange, xrange = draw_region
         subregion = base_frame[yrange, xrange]
         white_rect = np.ones(subregion.shape, dtype=np.uint8) * 255
-        res = cv.addWeighted(subregion, base_weight, white_rect, draw_weight, 1.0)
+        res = cv.addWeighted(subregion, base_weight,
+                             white_rect, draw_weight, 1.0)
 
         base_frame[yrange, xrange] = res
         return base_frame
@@ -320,6 +321,16 @@ class BpmCascade(feed.RpmFromFeed):
         if mode - threshold < intensity_delta < mode + threshold:
             self.detection_enable_toggle = True
 
+    def intensity_is_over_threshold(self, deviation: float, mode: float):
+        if (
+            self.fb.average_delta > (
+                mode + self.threshold_multiplier * deviation)
+            and self.detection_enable_toggle
+        ):
+            return True
+        else:
+            return False
+
     def boxes_in_radius(self, box_size: int) -> int:
         # In the horizontal or vertical stacking cases,
         # using the radius to the middle of a box's side
@@ -449,10 +460,12 @@ class BpmCascade(feed.RpmFromFeed):
             + (box_size * self.quadrant_axis_map[0])
         )
 
-        box_range = slice(self.box_start_index, num_boxes - self.trim_last_n_boxes)
+        box_range = slice(self.box_start_index, num_boxes -
+                          self.trim_last_n_boxes)
         for i in range(box_range.start, box_range.stop):
             box_x = round(offset_x + delta_x * i)
             box_y = round(offset_y + delta_y * i)
             box_center = (box_x, box_y)
-            bounds.append(BoundingBox.from_center_and_size(box_center, box_size))
+            bounds.append(BoundingBox.from_center_and_size(
+                box_center, box_size))
         return bounds

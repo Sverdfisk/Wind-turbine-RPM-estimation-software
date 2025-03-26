@@ -32,7 +32,8 @@ def main(feed, params):
                     motion_vectors = data[0] - data[1]
                     scaled_vectors = motion_vectors * feed.rpm_scaling_factor
                     rpm = feed.calculate_rpm_from_vectors(scaled_vectors)
-                    flow_image = feed.draw_optical_flow(image, data[1], data[0])
+                    flow_image = feed.draw_optical_flow(
+                        image, data[1], data[0])
 
                 # Set some defaults that we filter out if tracking is unsuccessful
                 else:
@@ -42,7 +43,8 @@ def main(feed, params):
                 # Find RPM and error rate
                 if rpm is not None:
                     rpms.append(rpm)
-                    error = utils.calculate_error_percentage(rpm, params["real_rpm"])
+                    error = utils.calculate_error_percentage(
+                        rpm, params["real_rpm"])
                     errors.append(error)
 
                 # This MUST be called to refresh frames.
@@ -55,7 +57,8 @@ def main(feed, params):
                 #  Logging is handled externally if the script is run from multirunner.py
                 if __name__ == "__main__":
                     if args.log:
-                        utils.write_output(params["id"], 0, rpms, params["real_rpm"])
+                        utils.write_output(
+                            params["id"], 0, rpms, params["real_rpm"])
                 else:
                     return rpms, errors
                 break
@@ -115,11 +118,8 @@ def main(feed, params):
                 # feed.detection_enable_toggle has reset and we get a big color difference spike
                 # note: the spike increases with box size and number of boxes
                 # but so does noise
-                if (
-                    feed.fb.average_delta
-                    > (mode + feed.threshold_multiplier * deviation)
-                    and feed.detection_enable_toggle
-                ):
+
+                if feed.intensity_is_over_threshold(float(deviation), mode):
                     # Note the frame we detect the blade
                     frame_ticks.append(feed.frame_cnt)
 
