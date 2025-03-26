@@ -62,24 +62,21 @@ def main(feed, params):
 
     elif isinstance(feed, bpm_cascade.BpmCascade):
         frame = feed.get_frame()
-        box_params = feed.fit_box_parameters_to_radius(
-            params["target_num_boxes"],
-            params["target_box_size"],
-            resize_boxes=params["resize_boxes"],
-            adjust_num_boxes=params["adjust_num_boxes"],
+
+        # Region and processing setup
+        box_params = feed.get_fitted_box_params_from_cfg()
+        bounds = feed.cascade_bounding_boxes(
+            *box_params, frame_buffer_size=feed.frame_buffer_size
         )
-        out = []
-        bounds = feed.cascade_bounding_boxes(*box_params, params["frame_buffer_size"])
-        kernel_er_dil_params = (
-            params["erosion_dilation_kernel_size"],
-            params["dilation_iterations"],
-            params["erosion_iterations"],
-        )
-        #  deque for ease of use, we only need the last 2 ticks to measure tick time
+        kernel_er_dil_params = feed.get_dilation_erosion_params()
+
+        # Filtering setup
+        # deque for ease of use, we only need the last 2 ticks to measure tick time
         frame_ticks = deque(maxlen=2)
         fb_averages = deque(maxlen=100)
-        deviation = 0
-        mode = 0
+        out = deque(maxlen=10)
+        deviation, mode = 0, 0
+
         while True:
             if feed.isActive:
                 # To start, we set up the bounding boxes for the algorithm
@@ -112,7 +109,6 @@ def main(feed, params):
                     mode = stats.mode(
                         [round(value, 1) for value in fb_averages], axis=0
                     )
-
                     mode = mode.mode  # Why is this necessary scipy?????
                     deviation = np.std(fb_averages)
 
@@ -120,7 +116,8 @@ def main(feed, params):
                 # note: the spike increases with box size and number of boxes
                 # but so does noise
                 if (
-                    abs(feed.fb.average_delta) > (mode + 2 * deviation)
+                    feed.fb.average_delta
+                    > (mode + feed.threshold_multiplier * deviation)
                     and feed.detection_enable_toggle
                 ):
                     # Note the frame we detect the blade
@@ -154,7 +151,6 @@ def main(feed, params):
                 k = cv.waitKey(30) & 0xFF
                 if k == 27:
                     break
-
                 # Update the frame
                 frame = feed.get_frame()
             else:

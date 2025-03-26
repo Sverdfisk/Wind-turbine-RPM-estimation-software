@@ -233,12 +233,14 @@ class BpmCascade(feed.RpmFromFeed):
         self.fb = FrameBuffer(self)
         self.detection_enable_toggle = True
         self.quadrant: int
+        self.frame_buffer_size: int
         self.stack_boxes_vertically: bool
         self.stack_boxes_horizontally: bool
         self.trim_last_n_boxes: int
         self.box_start_index: int
-
+        self.threshold_multiplier: int
         self.contrast_multiplier: float
+
         if self.contrast_multiplier == 1:
             self.adjust_contrast = False
         else:
@@ -269,7 +271,7 @@ class BpmCascade(feed.RpmFromFeed):
 
     def print_useful_stats(
         self,
-        out: list = [],
+        out: deque = deque(maxlen=5),
         frame_ticks: deque = deque(maxlen=1),
         detection_enable_toggle: bool = True,
         threshold: float = 0,
@@ -284,9 +286,9 @@ class BpmCascade(feed.RpmFromFeed):
                 utils.bcolors.ENDC
             } - {
                 'Detect Enabled' if detection_enable_toggle else 'Detect Disabled'
-            } - RPM: {utils.bcolors.BOLD}{0 if out == [] else round(out[-1], 3)}{
-                utils.bcolors.ENDC
-            } - Last detection {
+            } - RPM: {utils.bcolors.FAIL}{utils.bcolors.BOLD}{
+                0 if out == deque(maxlen=5) else round(np.mean(out), 3)
+            }{utils.bcolors.ENDC} - Last detection {
                 self.frame_cnt
                 - (0 if frame_ticks == deque(maxlen=2) else frame_ticks[-1])
             } frames ago"
@@ -336,6 +338,33 @@ class BpmCascade(feed.RpmFromFeed):
             box_diagonal = round(2 * box_size * math.sqrt(2))
             num_boxes = math.floor(self.hypotenuse_length / box_diagonal)
             return num_boxes
+
+    def get_fitted_box_params_from_cfg(self):
+        self.target_num_boxes: int
+        self.target_box_size: int
+        self.resize_boxes: bool
+        self.adjust_num_boxes: bool
+
+        return self.fit_box_parameters_to_radius(
+            self.target_num_boxes,
+            self.target_box_size,
+            self.resize_boxes,
+            self.adjust_num_boxes,
+        )
+
+    def get_dilation_erosion_params(self):
+        self.erosion_dilation_kernel_size: list[int]
+        self.dilation_iterations: int
+        self.erosion_iterations: int
+
+        return (
+            (
+                self.erosion_dilation_kernel_size[0],
+                self.erosion_dilation_kernel_size[1],
+            ),
+            self.dilation_iterations,
+            self.erosion_iterations,
+        )
 
     def fit_box_parameters_to_radius(
         self,
