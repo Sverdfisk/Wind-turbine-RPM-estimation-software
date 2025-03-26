@@ -122,8 +122,7 @@ class Draw:
         yrange, xrange = draw_region
         subregion = base_frame[yrange, xrange]
         white_rect = np.ones(subregion.shape, dtype=np.uint8) * 255
-        res = cv.addWeighted(subregion, base_weight,
-                             white_rect, draw_weight, 1.0)
+        res = cv.addWeighted(subregion, base_weight, white_rect, draw_weight, 1.0)
 
         base_frame[yrange, xrange] = res
         return base_frame
@@ -233,6 +232,7 @@ class BpmCascade(feed.RpmFromFeed):
         self.draw = Draw(self)
         self.fb = FrameBuffer(self)
         self.detection_enable_toggle = True
+        self.color_delta_update_frequency: int
         self.quadrant: int
         self.frame_buffer_size: int
         self.stack_boxes_vertically: bool
@@ -278,21 +278,56 @@ class BpmCascade(feed.RpmFromFeed):
         threshold: float = 0,
         mode: float = 0,
     ) -> None:
+        # Frame counter
         print(
-            f"{utils.bcolors.HEADER}Frame: {self.frame_cnt}{
-                utils.bcolors.ENDC
-            } - Delta / Threshold / mode: {utils.bcolors.OKCYAN}{
-                utils.bcolors.UNDERLINE
-            }{self.fb.average_delta} / {round(threshold, 2)} / {round(mode, 1)}{
-                utils.bcolors.ENDC
-            } - {
-                'Detect Enabled' if detection_enable_toggle else 'Detect Disabled'
-            } - RPM: {utils.bcolors.FAIL}{utils.bcolors.BOLD}{
+            f"{utils.bcolors.HEADER}Frame: {self.frame_cnt}{utils.bcolors.ENDC} - ",
+            end="",
+        )
+
+        # Delta, thresholds and mode
+        print(
+            f"Delta / Threshold / mode: {utils.bcolors.OKCYAN}{utils.bcolors.UNDERLINE}{
+                self.fb.average_delta
+            } / {round(threshold, 2)} / {round(mode, 1)}{utils.bcolors.ENDC} - ",
+            end="",
+        )
+
+        # Detect enabled status
+        print(
+            f"{'Detect Enabled' if detection_enable_toggle else 'Detect Disabled'} - ",
+            end="",
+        )
+
+        # RPM data
+        print(
+            f"RPM: {utils.bcolors.FAIL}{utils.bcolors.BOLD}{
                 0 if out == deque(maxlen=5) else round(np.mean(out), 3)
-            }{utils.bcolors.ENDC} - Last detection {
+            }{utils.bcolors.ENDC} - ",
+            end="",
+        )
+
+        # Time since last detection
+        print(
+            f"Last detection {
                 self.frame_cnt
                 - (0 if frame_ticks == deque(maxlen=2) else frame_ticks[-1])
-            } frames ago"
+            } frames ago - ",
+            end="",
+        )
+
+        # Error rate
+        print(
+            f"Error: {utils.bcolors.FAIL}{utils.bcolors.BOLD}{
+                round(
+                    utils.calculate_error_percentage(
+                        float(
+                            (0 if out == deque(maxlen=5) else round(np.mean(out), 3))
+                        ),
+                        self.real_rpm,
+                    ),
+                    2,
+                )
+            }%{utils.bcolors.ENDC}"
         )
 
     def _get_quadrant_subsection_slice(self) -> tuple[slice, slice]:
@@ -323,8 +358,7 @@ class BpmCascade(feed.RpmFromFeed):
 
     def intensity_is_over_threshold(self, deviation: float, mode: float):
         if (
-            self.fb.average_delta > (
-                mode + self.threshold_multiplier * deviation)
+            self.fb.average_delta > (mode + self.threshold_multiplier * deviation)
             and self.detection_enable_toggle
         ):
             return True
@@ -460,12 +494,10 @@ class BpmCascade(feed.RpmFromFeed):
             + (box_size * self.quadrant_axis_map[0])
         )
 
-        box_range = slice(self.box_start_index, num_boxes -
-                          self.trim_last_n_boxes)
+        box_range = slice(self.box_start_index, num_boxes - self.trim_last_n_boxes)
         for i in range(box_range.start, box_range.stop):
             box_x = round(offset_x + delta_x * i)
             box_y = round(offset_y + delta_y * i)
             box_center = (box_x, box_y)
-            bounds.append(BoundingBox.from_center_and_size(
-                box_center, box_size))
+            bounds.append(BoundingBox.from_center_and_size(box_center, box_size))
         return bounds

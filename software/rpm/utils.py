@@ -1,4 +1,5 @@
 import numpy as np
+from collections import deque
 import json
 
 
@@ -79,3 +80,21 @@ def write_output(
                 calculate_error_percentage(float(np.average(rpms)), real_rpm)
             }\n"
         )
+
+
+def find_top_n_modes(
+    data: list | deque, n: int = 1, return_counts=False, mode_round_delta_to_digit=1
+) -> list:
+    arr = np.asarray([round(value, mode_round_delta_to_digit) for value in data])
+
+    unique_vals, counts = np.unique(arr, return_counts=True)
+
+    sorted_indices = np.argsort(-counts)
+    top_values = unique_vals[sorted_indices][:n]
+    top_counts = counts[sorted_indices][:n]
+
+    if return_counts:
+        # Return as a list of (value, frequency) pairs
+        return list(zip(top_values, top_counts))
+    else:
+        return list(top_values)

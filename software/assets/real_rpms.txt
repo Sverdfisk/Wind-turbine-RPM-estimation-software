@@ -1,4 +1,4 @@
-gtav_rear_fog_lowcontrastmemes_f24=20
+gtav_rear_fog_occluded_f24.mov=20
 gtav_front_fog_lowcontrastmemes_f24=17.777777
 gtav_rear_fog_contrastmemes_f24=18.113207
 gtav_front_lowcontrastmemes_f244=10.909090

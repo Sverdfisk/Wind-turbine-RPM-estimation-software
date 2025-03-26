@@ -1,6 +1,5 @@
 import cv2 as cv
 import numpy as np
-from scipy import stats
 from collections import deque
 from rpm import opticalflow
 from rpm import bpm_cascade
@@ -32,8 +31,7 @@ def main(feed, params):
                     motion_vectors = data[0] - data[1]
                     scaled_vectors = motion_vectors * feed.rpm_scaling_factor
                     rpm = feed.calculate_rpm_from_vectors(scaled_vectors)
-                    flow_image = feed.draw_optical_flow(
-                        image, data[1], data[0])
+                    flow_image = feed.draw_optical_flow(image, data[1], data[0])
 
                 # Set some defaults that we filter out if tracking is unsuccessful
                 else:
@@ -43,8 +41,7 @@ def main(feed, params):
                 # Find RPM and error rate
                 if rpm is not None:
                     rpms.append(rpm)
-                    error = utils.calculate_error_percentage(
-                        rpm, params["real_rpm"])
+                    error = utils.calculate_error_percentage(rpm, params["real_rpm"])
                     errors.append(error)
 
                 # This MUST be called to refresh frames.
@@ -57,8 +54,7 @@ def main(feed, params):
                 #  Logging is handled externally if the script is run from multirunner.py
                 if __name__ == "__main__":
                     if args.log:
-                        utils.write_output(
-                            params["id"], 0, rpms, params["real_rpm"])
+                        utils.write_output(params["id"], 0, rpms, params["real_rpm"])
                 else:
                     return rpms, errors
                 break
@@ -77,7 +73,7 @@ def main(feed, params):
         # deque for ease of use, we only need the last 2 ticks to measure tick time
         frame_ticks = deque(maxlen=2)
         fb_averages = deque(maxlen=100)
-        out = deque(maxlen=10)
+        out = deque(maxlen=5)
         deviation, mode = 0, 0
 
         while True:
@@ -103,23 +99,14 @@ def main(feed, params):
                         frame, bounding_box.region, processed_region
                     )
 
-                # Updating the average less frequently reduces susceptibility to noise,
-                # but reduces sensitivity to color change. A good value
-                # could be between 2-5
-                if feed.frame_cnt % params["color_delta_update_frequency"] == 0:
+                if feed.frame_cnt % feed.color_delta_update_frequency == 0:
                     feed.fb.update_averages()
                     fb_averages.append(feed.fb.average_delta)
-                    mode = stats.mode(
-                        [round(value, 1) for value in fb_averages], axis=0
-                    )
-                    mode = mode.mode  # Why is this necessary scipy?????
+                    mode = utils.find_top_n_modes(fb_averages, 1)
+                    mode = np.mean(mode)
                     deviation = np.std(fb_averages)
 
-                # feed.detection_enable_toggle has reset and we get a big color difference spike
-                # note: the spike increases with box size and number of boxes
-                # but so does noise
-
-                if feed.intensity_is_over_threshold(float(deviation), mode):
+                if feed.intensity_is_over_threshold(float(deviation), float(mode)):
                     # Note the frame we detect the blade
                     frame_ticks.append(feed.frame_cnt)
 
@@ -143,7 +130,7 @@ def main(feed, params):
                     frame_ticks=frame_ticks,
                     detection_enable_toggle=feed.detection_enable_toggle,
                     threshold=float(deviation),
-                    mode=mode,
+                    mode=float(mode),
                 )
 
                 # This MUST be called to refresh frames.
