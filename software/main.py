@@ -113,7 +113,7 @@ def main(feed, params):
                     # We cant do calculations with one detection
                     if len(frame_ticks) == 2:
                         rpm = bounds[1].detect_blade.calculate_rpm(
-                            frame_ticks[1] - frame_ticks[0], params["fps"]
+                            frame_ticks[1] - frame_ticks[0], feed.fps
                         )
                         out.append(rpm)
 
@@ -125,13 +125,23 @@ def main(feed, params):
                 )
 
                 #  Print stats
-                feed.print_useful_stats(
-                    out=out,
-                    frame_ticks=frame_ticks,
-                    detection_enable_toggle=feed.detection_enable_toggle,
-                    threshold=float(deviation),
-                    mode=float(mode),
-                )
+                # feed.print_useful_stats(
+                #    out=out,
+                #    frame_ticks=frame_ticks,
+                #    detection_enable_toggle=feed.detection_enable_toggle,
+                #    threshold=float(deviation),
+                #    mode=float(mode),
+                # )
+
+                smoothed = False
+
+                if smoothed:
+                    print(
+                        feed.frame_cnt,
+                        (0 if out == deque(maxlen=5) else np.mean(np.asarray(out))),
+                    )
+                else:
+                    print(feed.frame_cnt, (0 if out == deque(maxlen=5) else out[-1]))
 
                 # This MUST be called to refresh frames.
                 cv.imshow("Image feed", frame)
