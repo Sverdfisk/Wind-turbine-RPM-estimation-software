@@ -96,9 +96,6 @@ class DetectBlade:
         processed_subregion = cv.erode(dilated, kernel, er_it)
         return processed_subregion
 
-    def calculate_rpm(self, frame_time: int, fps: float) -> float:
-        return crpm.calculate_rpm_from_frame_time(frame_time, fps)
-
 
 class Draw:
     """
@@ -122,7 +119,8 @@ class Draw:
         yrange, xrange = draw_region
         subregion = base_frame[yrange, xrange]
         white_rect = np.ones(subregion.shape, dtype=np.uint8) * 255
-        res = cv.addWeighted(subregion, base_weight, white_rect, draw_weight, 1.0)
+        res = cv.addWeighted(subregion, base_weight,
+                             white_rect, draw_weight, 1.0)
 
         base_frame[yrange, xrange] = res
         return base_frame
@@ -238,7 +236,7 @@ class BpmCascade(feed.RpmFromFeed):
         self.stack_boxes_vertically: bool
         self.stack_boxes_horizontally: bool
         self.trim_last_n_boxes: int
-        self.box_start_index: int
+        self.start_from_box: int
         self.threshold_multiplier: int
         self.contrast_multiplier: float
 
@@ -270,6 +268,9 @@ class BpmCascade(feed.RpmFromFeed):
         corner_pixel = all_corners[list_index]
         return corner_pixel
 
+    def calculate_rpm(self, frame_time: int, fps: float) -> float:
+        return crpm.calculate_rpm_from_frame_time(frame_time, fps)
+
     def print_useful_stats(
         self,
         out: deque = deque(maxlen=5),
@@ -280,7 +281,8 @@ class BpmCascade(feed.RpmFromFeed):
     ) -> None:
         # Frame counter
         print(
-            f"{utils.bcolors.HEADER}Frame: {self.frame_cnt}{utils.bcolors.ENDC} - ",
+            f"{utils.bcolors.HEADER}Frame: {
+                self.frame_cnt}{utils.bcolors.ENDC} - ",
             end="",
         )
 
@@ -321,7 +323,8 @@ class BpmCascade(feed.RpmFromFeed):
                 round(
                     utils.calculate_error_percentage(
                         float(
-                            (0 if out == deque(maxlen=5) else round(np.mean(out), 3))
+                            (0 if out == deque(maxlen=5)
+                             else round(np.mean(out), 3))
                         ),
                         self.real_rpm,
                     ),
@@ -358,7 +361,8 @@ class BpmCascade(feed.RpmFromFeed):
 
     def intensity_is_over_threshold(self, deviation: float, mode: float):
         if (
-            self.fb.average_delta > (mode + self.threshold_multiplier * deviation)
+            self.fb.average_delta > (
+                mode + self.threshold_multiplier * deviation)
             and self.detection_enable_toggle
         ):
             return True
@@ -494,10 +498,12 @@ class BpmCascade(feed.RpmFromFeed):
             + (box_size * self.quadrant_axis_map[0])
         )
 
-        box_range = slice(self.box_start_index, num_boxes - self.trim_last_n_boxes)
+        box_range = slice(self.start_from_box - 1,
+                          num_boxes - self.trim_last_n_boxes)
         for i in range(box_range.start, box_range.stop):
             box_x = round(offset_x + delta_x * i)
             box_y = round(offset_y + delta_y * i)
             box_center = (box_x, box_y)
-            bounds.append(BoundingBox.from_center_and_size(box_center, box_size))
+            bounds.append(BoundingBox.from_center_and_size(
+                box_center, box_size))
         return bounds

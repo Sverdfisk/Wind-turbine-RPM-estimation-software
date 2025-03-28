@@ -24,12 +24,12 @@ with open("out_ultrasmoothed.txt", "r") as f:
 
 # --- 2) Truncate so all three have the same length ---
 min_length = min(len(x_smooth), len(x_nonsmooth), len(x_ultra))
-x_smooth = x_smooth[600:min_length]
-y_smooth = y_smooth[600:min_length]
-x_nonsmooth = x_nonsmooth[600:min_length]
-y_nonsmooth = y_nonsmooth[600:min_length]
-x_ultra = x_ultra[600:min_length]
-y_ultra = y_ultra[600:min_length]
+x_smooth = x_smooth[:min_length]
+y_smooth = y_smooth[:min_length]
+x_nonsmooth = x_nonsmooth[:min_length]
+y_nonsmooth = y_nonsmooth[:min_length]
+x_ultra = x_ultra[:min_length]
+y_ultra = y_ultra[:min_length]
 
 # --- 3) Compute means ---
 mean_smooth = sum(y_smooth) / len(y_smooth)
@@ -37,7 +37,7 @@ mean_nonsmooth = sum(y_nonsmooth) / len(y_nonsmooth)
 mean_ultra = sum(y_ultra) / len(y_ultra)
 
 # Example real RPM line
-real_rpm = 11.578
+real_rpm = 11.5025
 
 # --- 4) Create single figure & axes ---
 fig, ax = plt.subplots(figsize=(10, 6))
