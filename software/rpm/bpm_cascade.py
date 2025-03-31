@@ -19,7 +19,7 @@ class BoundingBox:
 
     """
 
-    def __init__(self, center, size, region):
+    def __init__(self, center, size, region, frame_buffer_size):
         self.center = center
         self.size = size
 
@@ -29,19 +29,20 @@ class BoundingBox:
         self.side_length = self.size * 2
         self.draw = Draw(self)
         self.detect_blade = DetectBlade(self)
+        self.fb = FrameBuffer(self, frame_buffer_size)
 
     def area(self):
         return self.side_length * self.side_length
 
     @classmethod
-    def from_center_and_size(cls, center, size):
+    def from_center_and_size(cls, center, size, frame_buffer_size):
         region = cls.region_from_center_and_size(center, size)
-        return cls(center, size, region)
+        return cls(center, size, region, frame_buffer_size)
 
     @classmethod
-    def from_region(cls, region):
+    def from_region(cls, region, frame_buffer_size):
         center, size = cls.center_and_size_from_region(region)
-        return cls(center, size, region)
+        return cls(center, size, region, frame_buffer_size)
 
     @staticmethod
     def region_from_center_and_size(
@@ -119,8 +120,7 @@ class Draw:
         yrange, xrange = draw_region
         subregion = base_frame[yrange, xrange]
         white_rect = np.ones(subregion.shape, dtype=np.uint8) * 255
-        res = cv.addWeighted(subregion, base_weight,
-                             white_rect, draw_weight, 1.0)
+        res = cv.addWeighted(subregion, base_weight, white_rect, draw_weight, 1.0)
 
         base_frame[yrange, xrange] = res
         return base_frame
@@ -174,16 +174,17 @@ class FrameBuffer:
 
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent, size):
         self.parent = parent
         self.average_delta = 0
+        self.entries = deque(maxlen=size)
 
-    def insert(self, buffer: int, region: np.ndarray) -> None:
+    def insert(self, region: np.ndarray) -> None:
         # Store the processed regions and nice-to-haves in the buffer
         intensity = np.mean(region)
 
-        if len(self.parent.frame_buffers[buffer]) > 0:
-            prev_frame_intensity = self.parent.frame_buffers[buffer][-1]["intensity"]
+        if len(self.entries) > 0:
+            prev_frame_intensity = self.entries[-1]["intensity"]
         else:
             #  Just to keep the delta at 0 to avoid startup spikes
             prev_frame_intensity = intensity
@@ -195,16 +196,15 @@ class FrameBuffer:
             "intensity": intensity,
             "intensity_delta": intensity_delta,
         }
-        self.parent.frame_buffers[buffer].append(entry)
+        self.entries.append(entry)
 
     # Only takes the last updated value and updates avgs
     # Designed this way so a user can conditionally update
-    def update_averages(self) -> None:
+    def update_average(self) -> None:
         vals = []
-        for fb in self.parent.frame_buffers:
-            for entry in fb:
-                vals.append(entry["intensity_delta"])
-        self.average_delta = round(np.mean(vals), 5)
+        for entry in self.entries:
+            vals.append(entry["intensity_delta"])
+        self.average_delta = np.mean(vals)
 
 
 class BpmCascade(feed.RpmFromFeed):
@@ -228,10 +228,10 @@ class BpmCascade(feed.RpmFromFeed):
         self.quadrant_subsection = self._get_quadrant_subsection_slice()
         self.quadrant_axis_map = self._generate_axis_mapping()
         self.draw = Draw(self)
-        self.fb = FrameBuffer(self)
         self.detection_enable_toggle = True
         self.color_delta_update_frequency: int
         self.quadrant: int
+        self.all_fb_delta_average = 0
         self.frame_buffer_size: int
         self.stack_boxes_vertically: bool
         self.stack_boxes_horizontally: bool
@@ -271,6 +271,13 @@ class BpmCascade(feed.RpmFromFeed):
     def calculate_rpm(self, frame_time: int, fps: float) -> float:
         return crpm.calculate_rpm_from_frame_time(frame_time, fps)
 
+    def update_all_fb_averages(self):
+        sum = []
+        for box in self.bounds:
+            box.fb.update_average()
+            sum.append(box.fb.average_delta)
+        self.all_fb_delta_average = np.mean(sum)
+
     def print_useful_stats(
         self,
         out: deque = deque(maxlen=5),
@@ -281,15 +288,14 @@ class BpmCascade(feed.RpmFromFeed):
     ) -> None:
         # Frame counter
         print(
-            f"{utils.bcolors.HEADER}Frame: {
-                self.frame_cnt}{utils.bcolors.ENDC} - ",
+            f"{utils.bcolors.HEADER}Frame: {self.frame_cnt}{utils.bcolors.ENDC} - ",
             end="",
         )
 
         # Delta, thresholds and mode
         print(
             f"Delta / Threshold / mode: {utils.bcolors.OKCYAN}{utils.bcolors.UNDERLINE}{
-                self.fb.average_delta
+                round(self.all_fb_delta_average, 3)
             } / {round(threshold, 2)} / {round(mode, 1)}{utils.bcolors.ENDC} - ",
             end="",
         )
@@ -323,8 +329,7 @@ class BpmCascade(feed.RpmFromFeed):
                 round(
                     utils.calculate_error_percentage(
                         float(
-                            (0 if out == deque(maxlen=5)
-                             else round(np.mean(out), 3))
+                            (0 if out == deque(maxlen=5) else round(np.mean(out), 3))
                         ),
                         self.real_rpm,
                     ),
@@ -361,8 +366,7 @@ class BpmCascade(feed.RpmFromFeed):
 
     def intensity_is_over_threshold(self, deviation: float, mode: float):
         if (
-            self.fb.average_delta > (
-                mode + self.threshold_multiplier * deviation)
+            self.all_fb_delta_average > (mode + self.threshold_multiplier * deviation)
             and self.detection_enable_toggle
         ):
             return True
@@ -459,21 +463,12 @@ class BpmCascade(feed.RpmFromFeed):
 
         return (result_boxes, result_size)
 
-    def _initialize_frame_buffers(
-        self, num_buffers: int, frame_buffer_length: int
-    ) -> None:
-        self.frame_buffers = []
-        for _ in range(num_buffers):
-            self.frame_buffers.append(deque(maxlen=frame_buffer_length))
-
     def cascade_bounding_boxes(
         self,
         num_boxes: int,
         box_size,
-        frame_buffer_size: int = 5,
     ) -> list[BoundingBox]:
         bounds = []
-        self._initialize_frame_buffers(num_boxes, frame_buffer_size)
 
         #  TODO: figure out a smarter way to do this axis stuff
         delta_y = (
@@ -498,12 +493,18 @@ class BpmCascade(feed.RpmFromFeed):
             + (box_size * self.quadrant_axis_map[0])
         )
 
-        box_range = slice(self.start_from_box - 1,
-                          num_boxes - self.trim_last_n_boxes)
+        box_range = slice(self.start_from_box - 1, num_boxes - self.trim_last_n_boxes)
+
+        # Cascade boxes
         for i in range(box_range.start, box_range.stop):
             box_x = round(offset_x + delta_x * i)
             box_y = round(offset_y + delta_y * i)
             box_center = (box_x, box_y)
-            bounds.append(BoundingBox.from_center_and_size(
-                box_center, box_size))
+
+            bounds.append(
+                BoundingBox.from_center_and_size(
+                    box_center, box_size, self.frame_buffer_size
+                )
+            )
+        self.bounds = bounds
         return bounds

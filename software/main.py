@@ -31,8 +31,7 @@ def main(feed, params):
                     motion_vectors = data[0] - data[1]
                     scaled_vectors = motion_vectors * feed.rpm_scaling_factor
                     rpm = feed.calculate_rpm_from_vectors(scaled_vectors)
-                    flow_image = feed.draw_optical_flow(
-                        image, data[1], data[0])
+                    flow_image = feed.draw_optical_flow(image, data[1], data[0])
 
                 # Set some defaults that we filter out if tracking is unsuccessful
                 else:
@@ -42,8 +41,7 @@ def main(feed, params):
                 # Find RPM and error rate
                 if rpm is not None:
                     rpms.append(rpm)
-                    error = utils.calculate_error_percentage(
-                        rpm, params["real_rpm"])
+                    error = utils.calculate_error_percentage(rpm, params["real_rpm"])
                     errors.append(error)
 
                 # This MUST be called to refresh frames.
@@ -56,8 +54,7 @@ def main(feed, params):
                 #  Logging is handled externally if the script is run from multirunner.py
                 if __name__ == "__main__":
                     if args.log:
-                        utils.write_output(
-                            params["id"], 0, rpms, params["real_rpm"])
+                        utils.write_output(params["id"], 0, rpms, params["real_rpm"])
                 else:
                     return rpms, errors
                 break
@@ -67,15 +64,13 @@ def main(feed, params):
 
         # Region and processing setup
         box_params = feed.get_fitted_box_params_from_cfg()
-        bounds = feed.cascade_bounding_boxes(
-            *box_params, frame_buffer_size=feed.frame_buffer_size
-        )
+        bounds = feed.cascade_bounding_boxes(*box_params)
         kernel_er_dil_params = feed.get_dilation_erosion_params()
 
         # Filtering setup
         # deque for ease of use, we only need the last 2 ticks to measure tick time
         frame_ticks = deque(maxlen=2)
-        fb_averages = deque(maxlen=100)
+        all_fb_averages = deque(maxlen=100)
         out = deque(maxlen=5)
         deviation, mode = 0, 0
 
@@ -90,7 +85,7 @@ def main(feed, params):
                     )
 
                     # Save processed regions/subimages in frame buffer
-                    feed.fb.insert(frame_buffer_index, processed_region)
+                    bounding_box.fb.insert(processed_region)
 
                     #  Draw a  border around the bounding box processed region
                     #  call this after inserting the region into the frame buffer!!!!
@@ -103,11 +98,11 @@ def main(feed, params):
                     )
 
                 if feed.frame_cnt % feed.color_delta_update_frequency == 0:
-                    feed.fb.update_averages()
-                    fb_averages.append(feed.fb.average_delta)
-                    mode = utils.find_top_n_modes(fb_averages, 1)
+                    feed.update_all_fb_averages()
+                    all_fb_averages.append(feed.all_fb_delta_average)
+                    mode = utils.find_top_n_modes(all_fb_averages, 1)
                     mode = np.mean(mode)
-                    deviation = np.std(fb_averages)
+                    deviation = np.std(all_fb_averages)
 
                 if feed.intensity_is_over_threshold(float(deviation), float(mode)):
                     # Note the frame we detect the blade
@@ -124,30 +119,33 @@ def main(feed, params):
                     feed.detection_enable_toggle = False
 
                 feed.update_detection_enable_toggle(
-                    feed.fb.average_delta, deviation, mode
+                    feed.all_fb_delta_average, deviation, mode
                 )
 
-                #  Print stats
-                # feed.print_useful_stats(
-                #    out=out,
-                #    frame_ticks=frame_ticks,
-                #    detection_enable_toggle=feed.detection_enable_toggle,
-                #    threshold=float(deviation),
-                #    mode=float(mode),
-                # )
+                # Print stats
+                feed.print_useful_stats(
+                    out=out,
+                    frame_ticks=frame_ticks,
+                    detection_enable_toggle=feed.detection_enable_toggle,
+                    threshold=float(deviation),
+                    mode=float(mode),
+                )
 
-                smoothed = False
+                # smoothed = False
 
-                if smoothed:
-                    print(
-                        feed.frame_cnt,
-                        (0 if out == deque(maxlen=5) else np.mean(np.asarray(out))),
-                    )
-                else:
-                    print(feed.frame_cnt, (0 if out ==
-                          deque(maxlen=5) else out[-1]))
+                # if smoothed:
+                #    print(
+                #        feed.frame_cnt,
+                #        (0 if out == deque(maxlen=5) else np.mean(np.asarray(out))),
+                #    )
+                # else:
+                #    print(
+                #        f"{feed.frame_cnt}, {
+                #            (0 if out == deque(maxlen=5) else out[-1])
+                #        }"
+                #    )
 
-                cv.imwrite(f"images/frame_{feed.frame_cnt}.png", frame)
+                # cv.imwrite(f"images/frame_{feed.frame_cnt}.png", frame)
                 # This MUST be called to refresh frames.
                 cv.imshow("Image feed", frame)
                 k = cv.waitKey(30) & 0xFF
