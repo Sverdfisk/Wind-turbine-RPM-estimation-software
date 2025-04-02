@@ -176,10 +176,12 @@ cython_debug/
 **/*.jpg
 **/*.jpeg
 **/*.csv
+graphs/*
 
 software/assets/*
 !software/assets/*.mov
 !software/assets/real_rpms.txt
+!software/assets/config_generator.py
 software/config/*.json
 
 #  Keep the config template
@@ -190,3 +192,4 @@ software/middleman.py
 software/out.txt
 software/profile.txt
 software/ignorethis
+
