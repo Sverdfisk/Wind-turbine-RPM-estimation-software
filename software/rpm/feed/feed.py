@@ -7,6 +7,8 @@ class Feed:
         self.crop_points = kwargs["crop_points"]
         self.frame_cnt = 0
         self._set_base_config(kwargs["target"], kwargs["fps"])
+        self.adjust_contrast: bool
+        self.contrast_multiplier: int
 
     def _set_base_config(self, target, fps) -> None:
         self.target = target
@@ -59,4 +61,4 @@ class RpmFromFeed(Feed):
 
     def get_center_pixel(self) -> tuple:
         # We can just use the radius here to find the middle of the image
-        return (self.radius_y, self.radius_x)
+        return (self.radius_x, self.radius_y)

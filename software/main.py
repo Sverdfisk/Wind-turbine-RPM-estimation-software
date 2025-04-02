@@ -70,15 +70,16 @@ def main(feed, params):
         # Filtering setup
         # deque for ease of use, we only need the last 2 ticks to measure tick time
         frame_ticks = deque(maxlen=2)
-        all_fb_averages = deque(maxlen=100)
+        all_fb_averages = deque(maxlen=60)
         out = deque(maxlen=5)
         deviation, mode = 0, 0
+        graph_mode = False
 
         while True:
             if feed.isActive:
                 # To start, we set up the bounding boxes for the algorithm
                 # Each box gets its own frame buffer, organized by the box index
-                for frame_buffer_index, bounding_box in enumerate(bounds):
+                for bounding_box in bounds:
                     # Do processing
                     processed_region = bounding_box.detect_blade.dilation_erosion(
                         frame, *kernel_er_dil_params
@@ -123,28 +124,28 @@ def main(feed, params):
                 )
 
                 # Print stats
-                feed.print_useful_stats(
-                    out=out,
-                    frame_ticks=frame_ticks,
-                    detection_enable_toggle=feed.detection_enable_toggle,
-                    threshold=float(deviation),
-                    mode=float(mode),
-                )
 
-                # smoothed = False
-
-                # if smoothed:
-                #    print(
-                #        feed.frame_cnt,
-                #        (0 if out == deque(maxlen=5) else np.mean(np.asarray(out))),
-                #    )
-                # else:
-                #    print(
-                #        f"{feed.frame_cnt}, {
-                #            (0 if out == deque(maxlen=5) else out[-1])
-                #        }"
-                #    )
-
+                if graph_mode:
+                    smoothed = False
+                    if smoothed:
+                        print(
+                            feed.frame_cnt,
+                            (0 if out == deque(maxlen=5) else np.mean(np.asarray(out))),
+                        )
+                    else:
+                        print(
+                            f"{feed.frame_cnt}, {
+                                (0 if out == deque(maxlen=5) else out[-1])
+                            }"
+                        )
+                else:
+                    feed.print_useful_stats(
+                        out=out,
+                        frame_ticks=frame_ticks,
+                        detection_enable_toggle=feed.detection_enable_toggle,
+                        threshold=float(deviation),
+                        mode=float(mode),
+                    )
                 # cv.imwrite(f"images/frame_{feed.frame_cnt}.png", frame)
                 # This MUST be called to refresh frames.
                 cv.imshow("Image feed", frame)

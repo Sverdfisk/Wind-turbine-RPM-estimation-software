@@ -189,7 +189,6 @@ class FrameBuffer:
             #  Just to keep the delta at 0 to avoid startup spikes
             prev_frame_intensity = intensity
         intensity_delta = intensity - prev_frame_intensity
-        # print(f"buffer: {buffer} - delta: {intensity_delta}")
 
         entry = {
             "subregion": region,
@@ -238,7 +237,6 @@ class BpmCascade(feed.RpmFromFeed):
         self.trim_last_n_boxes: int
         self.start_from_box: int
         self.threshold_multiplier: int
-        self.contrast_multiplier: float
 
         if self.contrast_multiplier == 1:
             self.adjust_contrast = False
