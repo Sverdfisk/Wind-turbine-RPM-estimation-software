@@ -1,12 +1,14 @@
 import sys
-from PyQt6.QtWidgets import QMainWindow, QApplication, QLabel, QFileDialog
-from PyQt6.QtGui import QIcon, QFont, QPixmap, QImage
+from PyQt6.QtWidgets import QMainWindow, QApplication, QLabel, QFileDialog, QPushButton
+from PyQt6.QtGui import QIcon, QPixmap, QImage, QAction
 import cv2
 
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
+
+        # Window setup
         self.setWindowTitle("Config Generator")
         self.setGeometry(400, 300, 700, 500)
         self.setWindowIcon(QIcon("../assets/gui_icon.png"))
@@ -14,17 +16,18 @@ class MainWindow(QMainWindow):
         image_preview = QLabel(self)
         image_preview.setGeometry(345, 5, 350, 490)
 
-        video = cv2.VideoCapture(
-            "../assets/gtav_front_night_57f53_11r5025.mp4")
+        video = cv2.VideoCapture("assets/gtav_front_night_57f53_11r5025.mp4")
         _, frame = video.read()
         frame = QPixmap(convert_cvimg_to_qimg(frame))
         image_preview.setPixmap(frame)
 
-        tf_path = QFileDialog.getExistingDirectory(
-            parent=self,
-            caption="Select directory",
-            directory=".",
-            options=QFileDialog.Option.ShowDirsOnly,
+        self.btn_path_select = QPushButton(parent=self, text="Select Path")
+        self.btn_path_select.setGeometry(0, 0, 100, 70)
+        self.btn_path_select.pressed.connect(self.path_select)
+
+    def path_select(self, directory: str = ".") -> QFileDialog:
+        return QFileDialog.getExistingDirectory(
+            parent=self, caption="Select directory", directory="."
         )
 
 
@@ -38,8 +41,7 @@ def main():
 def convert_cvimg_to_qimg(cvImg):
     height, width, _ = cvImg.shape
     bytesPerLine = 3 * width
-    qImg = QImage(cvImg.data, width, height, bytesPerLine,
-                  QImage.Format.Format_RGB888)
+    qImg = QImage(cvImg.data, width, height, bytesPerLine, QImage.Format.Format_RGB888)
     return qImg
 
 
