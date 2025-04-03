@@ -95,8 +95,8 @@ class MainWindow(QMainWindow):
         self.fld_path_select.setText(file_path[0])
 
     def update_crop_points(self):
-        self.xrange = slice(self.from_x.text, self.to_x.text)
-        self.range = slice(self.from_y.text, self.to_y.text)
+        self.xrange = slice(int(self.from_x.text()), int(self.to_x.text()))
+        self.yrange = slice(int(self.from_y.text()), int(self.to_y.text()))
         self.update_image_preview()
 
     def initln_crop_points(self):
@@ -104,11 +104,11 @@ class MainWindow(QMainWindow):
         self.crop_point_select.setLayout(QHBoxLayout())
         self.from_x_label = QLabel(parent=self, text="from x:")
         self.from_x = QLineEdit(placeholderText="0")
-        self.to_x_label = QLabel(parent=self, text="from x:")
+        self.to_x_label = QLabel(parent=self, text="to x:")
         self.to_x = QLineEdit(placeholderText="1000")
-        self.from_y_label = QLabel(parent=self, text="from x:")
+        self.from_y_label = QLabel(parent=self, text="from y:")
         self.from_y = QLineEdit(placeholderText="0")
-        self.to_y_label = QLabel(parent=self, text="from x:")
+        self.to_y_label = QLabel(parent=self, text="to y:")
         self.to_y = QLineEdit(placeholderText="1000")
         self.refresh_crop = QPushButton(parent=self, text="Refresh")
         self.refresh_crop.clicked.connect(self.update_crop_points)
@@ -120,6 +120,7 @@ class MainWindow(QMainWindow):
         self.crop_point_select.layout().addWidget(self.from_y)
         self.crop_point_select.layout().addWidget(self.to_y_label)
         self.crop_point_select.layout().addWidget(self.to_y)
+        self.crop_point_select.layout().addWidget(self.refresh_crop)
         self.control_panel.layout().addWidget(self.crop_point_select)
 
 
@@ -133,7 +134,8 @@ def main():
 def convert_cvimg_to_qimg(cvImg):
     height, width, _ = cvImg.shape
     bytesPerLine = 3 * width
-    qImg = QImage(cvImg.data, width, height, bytesPerLine, QImage.Format.Format_RGB888)
+    data = cvImg.tobytes()
+    qImg = QImage(data, width, height, bytesPerLine, QImage.Format.Format_RGB888)
     return qImg
 
 
