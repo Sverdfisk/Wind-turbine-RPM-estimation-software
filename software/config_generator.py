@@ -82,6 +82,8 @@ class MainWindow(QMainWindow):
         self.initln_mode_select()
         self.initln_path_select()
         self.initln_feed_details()
+        self.initln_box_section_header()
+        self.initln_box_params()
 
         # Detail params
         self.initln_crop_points()
@@ -95,7 +97,7 @@ class MainWindow(QMainWindow):
     def initln_path_select(self):
         self.path_select = QWidget()
         self.path_select.setLayout(QHBoxLayout())
-        self.lbl_path_select = QLabel(parent=self, text="Path:")
+        self.lbl_path_select = QLabel(parent=self, text="Feed path")
         self.fld_path_select = QLineEdit(placeholderText="path...")
         self.btn_path_select = QPushButton(parent=self, text="Browse..")
         self.btn_path_select.clicked.connect(self.dialog_path_select)
@@ -105,12 +107,41 @@ class MainWindow(QMainWindow):
         self.path_select.layout().addWidget(self.btn_path_select)
         self.control_panel.layout().addWidget(self.path_select)
 
+    def initln_box_section_header(self):
+        self.box_section_header = QWidget()
+        self.box_section_header.setLayout(QHBoxLayout())
+        lbl_header = QLabel(parent=self, text="Detection zone configuration:")
+        self.box_section_header.layout().addWidget(lbl_header)
+        self.control_panel.layout().addWidget(self.box_section_header)
+
+    def initln_box_params(self):
+        self.box_params = QWidget()
+        self.box_params.setLayout(QHBoxLayout())
+        self.lbl_num_boxes = QLabel(parent=self, text="Number of boxes")
+        self.fld_num_boxes = QLineEdit(placeholderText="10")
+        self.lbl_box_size = QLabel(parent=self, text="Box size")
+        self.fld_box_size = QLineEdit(placeholderText="10")
+        self.lbl_start_from_box = QLabel(parent=self, text="Start from box")
+        self.fld_start_from_box = QLineEdit(placeholderText="0")
+        self.lbl_trim_last_n = QLabel(parent=self, text="Trim last N boxes")
+        self.fld_trim_last_n = QLineEdit(placeholderText="0")
+        self.box_params.layout().addWidget(self.lbl_num_boxes)
+        self.box_params.layout().addWidget(self.fld_num_boxes)
+        self.box_params.layout().addWidget(self.lbl_box_size)
+        self.box_params.layout().addWidget(self.fld_box_size)
+        self.box_params.layout().addWidget(self.lbl_start_from_box)
+        self.box_params.layout().addWidget(self.fld_start_from_box)
+        self.box_params.layout().addWidget(self.lbl_trim_last_n)
+        self.box_params.layout().addWidget(self.fld_trim_last_n)
+        self.control_panel.layout().addWidget(self.box_params)
+
     def initln_feed_details(self):
         feed_details = QWidget()
         feed_details.setLayout(QHBoxLayout())
         self.id = self.create_labeled_field("Run ID:", placeholder_text="1")
-        self.fps = self.create_labeled_field("Video FPS:", placeholder_text="0")
-        self.real_rpm = self.create_labeled_field("Real RPM:", placeholder_text="0")
+        self.fps = self.create_labeled_field("Feed FPS:", placeholder_text="0")
+        self.real_rpm = self.create_labeled_field(
+            "Real RPM:", placeholder_text="0")
         feed_details.layout().addWidget(self.id)
         feed_details.layout().addWidget(self.fps)
         feed_details.layout().addWidget(self.real_rpm)
@@ -123,6 +154,7 @@ class MainWindow(QMainWindow):
         bpm_mode = QPushButton(parent=self, text="BPM")
         bpm_mode.setCheckable(True)
         bpm_mode.setAutoExclusive(True)
+        bpm_mode.setChecked(True)
 
         opticalflow_mode = QPushButton(parent=self, text="Optical flow")
         opticalflow_mode.setCheckable(True)
@@ -163,10 +195,11 @@ class MainWindow(QMainWindow):
         # real-life y axis and not the pythonic code one (which is flipped)
         self.xrange = slice(int(self.from_x.text()), int(self.to_x.text()))
         self.yrange = slice(int(self.from_y.text()), int(self.to_y.text()))
-        self.preview.update_image_preview(xrange=self.xrange, yrange=self.yrange)
+        self.preview.update_image_preview(
+            xrange=self.xrange, yrange=self.yrange)
 
     def closeEvent(self, event):
-        # This ensures the child window closes when parent is closed
+        # This ensures the child window (preview) closes when parent is closed
         if self.preview:
             self.preview.close()
         event.accept()
@@ -174,13 +207,13 @@ class MainWindow(QMainWindow):
     def initln_crop_points(self):
         self.crop_point_select = QWidget()
         self.crop_point_select.setLayout(QHBoxLayout())
-        self.from_x_label = QLabel(parent=self, text="from x:")
+        self.from_x_label = QLabel(parent=self, text="from x")
         self.from_x = QLineEdit(placeholderText="0")
-        self.to_x_label = QLabel(parent=self, text="to x:")
+        self.to_x_label = QLabel(parent=self, text="to x")
         self.to_x = QLineEdit(placeholderText="1000")
-        self.from_y_label = QLabel(parent=self, text="from y:")
+        self.from_y_label = QLabel(parent=self, text="from y")
         self.from_y = QLineEdit(placeholderText="0")
-        self.to_y_label = QLabel(parent=self, text="to y:")
+        self.to_y_label = QLabel(parent=self, text="to y")
         self.to_y = QLineEdit(placeholderText="1000")
         self.refresh_crop = QPushButton(parent=self, text="Refresh")
         self.refresh_crop.clicked.connect(self.update_crop_points)
@@ -207,7 +240,8 @@ def convert_cvimg_to_qimg(cvImg):
     height, width, _ = cvImg.shape
     bytesPerLine = 3 * width
     data = cvImg.tobytes()
-    qImg = QImage(data, width, height, bytesPerLine, QImage.Format.Format_RGB888)
+    qImg = QImage(data, width, height, bytesPerLine,
+                  QImage.Format.Format_RGB888)
     return qImg
 
 

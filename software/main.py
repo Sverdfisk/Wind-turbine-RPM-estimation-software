@@ -81,7 +81,7 @@ def main(feed, params):
                 # Each box gets its own frame buffer, organized by the box index
                 for bounding_box in bounds:
                     # Do processing
-                    processed_region = bounding_box.detect_blade.dilation_erosion(
+                    processed_region = bounding_box.dilate_and_erode(
                         frame, *kernel_er_dil_params
                     )
 
@@ -98,10 +98,13 @@ def main(feed, params):
                         frame, bounding_box.region, processed_region
                     )
 
+                    bounding_box.fb.update_color_delta_average()
+
                 if feed.frame_cnt % feed.color_delta_update_frequency == 0:
-                    feed.update_all_fb_averages()
+                    feed.update_global_fb_average()
                     all_fb_averages.append(feed.all_fb_delta_average)
                     mode = utils.find_top_n_modes(all_fb_averages, 1)
+                    # Only useful if there is more than 1 mode
                     mode = np.mean(mode)
                     deviation = np.std(all_fb_averages)
 
@@ -143,7 +146,7 @@ def main(feed, params):
                         out=out,
                         frame_ticks=frame_ticks,
                         detection_enable_toggle=feed.detection_enable_toggle,
-                        threshold=float(deviation),
+                        threshold=float((mode + feed.threshold_multiplier * deviation)),
                         mode=float(mode),
                     )
                 # cv.imwrite(f"images/frame_{feed.frame_cnt}.png", frame)

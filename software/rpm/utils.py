@@ -10,7 +10,8 @@ def calculate_error_percentage(
         return None
 
     if measured_value is not None:
-        error_percentage = abs(measured_value - actual_value) / actual_value * 100
+        error_percentage = abs(
+            measured_value - actual_value) / actual_value * 100
     else:
         error_percentage = None
     return error_percentage
@@ -38,7 +39,8 @@ def print_statistics(
                 )
 
         print(f"Average rpm: {avg_rpm}")
-        print(f"Average RPM error percentage from real RPM: {avg_error_from_real}%")
+        print(f"Average RPM error percentage from real RPM: {
+              avg_error_from_real}%")
         print(f"Average of all error percentages: {avg_error}%")
 
     else:
@@ -85,12 +87,13 @@ def write_output(
 def find_top_n_modes(
     data: list | deque, n: int = 1, return_counts=False, mode_round_delta_to_digit=1
 ) -> list:
-    arr = np.asarray([round(value, mode_round_delta_to_digit) for value in data])
+    arr = np.asarray([round(value, mode_round_delta_to_digit)
+                     for value in data])
 
-    unique_vals, counts = np.unique(arr, return_counts=True)
+    values, counts = np.unique(arr, return_counts=True)
 
     sorted_indices = np.argsort(-counts)
-    top_values = unique_vals[sorted_indices][:n]
+    top_values = values[sorted_indices][:n]
     top_counts = counts[sorted_indices][:n]
 
     if return_counts:

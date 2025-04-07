@@ -28,8 +28,20 @@ class BoundingBox:
         #  side length =/= size
         self.side_length = self.size * 2
         self.draw = Draw(self)
-        self.detect_blade = DetectBlade(self)
         self.fb = FrameBuffer(self, frame_buffer_size)
+
+    def dilate_and_erode(
+        self,
+        frame: np.ndarray,
+        kernel_size: tuple[int, int],
+        dil_it: int,
+        er_it: int,
+    ) -> np.ndarray:
+        subregion = frame[self.region]
+        kernel = cv.getStructuringElement(cv.MORPH_RECT, kernel_size)
+        dilated = cv.dilate(subregion, kernel, dil_it)
+        processed_subregion = cv.erode(dilated, kernel, er_it)
+        return processed_subregion
 
     def area(self):
         return self.side_length * self.side_length
@@ -65,39 +77,6 @@ class BoundingBox:
         return (center, sizex)
 
 
-class Training:
-    def __init__(self, parent):
-        self.parent = parent
-
-
-class DetectBlade:
-    """
-    Wrapper class for blade detection mechanisms. Intended to be used in composition.
-
-    Args:
-        parent (class): The composition parent.
-
-    """
-
-    def __init__(self, parent):
-        self.parent = parent
-
-    # Returns an array of altered pixels in its own region
-
-    def dilation_erosion(
-        self,
-        frame: np.ndarray,
-        kernel_size: tuple[int, int],
-        dil_it: int,
-        er_it: int,
-    ) -> np.ndarray:
-        subregion = frame[self.parent.region]
-        kernel = cv.getStructuringElement(cv.MORPH_RECT, kernel_size)
-        dilated = cv.dilate(subregion, kernel, dil_it)
-        processed_subregion = cv.erode(dilated, kernel, er_it)
-        return processed_subregion
-
-
 class Draw:
     """
     Wrapper class for drawing mehanisms and related utilities.
@@ -120,7 +99,8 @@ class Draw:
         yrange, xrange = draw_region
         subregion = base_frame[yrange, xrange]
         white_rect = np.ones(subregion.shape, dtype=np.uint8) * 255
-        res = cv.addWeighted(subregion, base_weight, white_rect, draw_weight, 1.0)
+        res = cv.addWeighted(subregion, base_weight,
+                             white_rect, draw_weight, 1.0)
 
         base_frame[yrange, xrange] = res
         return base_frame
@@ -199,7 +179,7 @@ class FrameBuffer:
 
     # Only takes the last updated value and updates avgs
     # Designed this way so a user can conditionally update
-    def update_average(self) -> None:
+    def update_color_delta_average(self) -> None:
         vals = []
         for entry in self.entries:
             vals.append(entry["intensity_delta"])
@@ -269,10 +249,9 @@ class BpmCascade(feed.RpmFromFeed):
     def calculate_rpm(self, frame_time: int, fps: float) -> float:
         return crpm.calculate_rpm_from_frame_time(frame_time, fps)
 
-    def update_all_fb_averages(self):
+    def update_global_fb_average(self):
         sum = []
         for box in self.bounds:
-            box.fb.update_average()
             sum.append(box.fb.average_delta)
         self.all_fb_delta_average = np.mean(sum)
 
@@ -286,7 +265,8 @@ class BpmCascade(feed.RpmFromFeed):
     ) -> None:
         # Frame counter
         print(
-            f"{utils.bcolors.HEADER}Frame: {self.frame_cnt}{utils.bcolors.ENDC} - ",
+            f"{utils.bcolors.HEADER}Frame: {
+                self.frame_cnt}{utils.bcolors.ENDC} - ",
             end="",
         )
 
@@ -327,7 +307,8 @@ class BpmCascade(feed.RpmFromFeed):
                 round(
                     utils.calculate_error_percentage(
                         float(
-                            (0 if out == deque(maxlen=5) else round(np.mean(out), 3))
+                            (0 if out == deque(maxlen=5)
+                             else round(np.mean(out), 3))
                         ),
                         self.real_rpm,
                     ),
@@ -364,7 +345,8 @@ class BpmCascade(feed.RpmFromFeed):
 
     def intensity_is_over_threshold(self, deviation: float, mode: float):
         if (
-            self.all_fb_delta_average > (mode + self.threshold_multiplier * deviation)
+            self.all_fb_delta_average > (
+                mode + self.threshold_multiplier * deviation)
             and self.detection_enable_toggle
         ):
             return True
@@ -491,7 +473,8 @@ class BpmCascade(feed.RpmFromFeed):
             + (box_size * self.quadrant_axis_map[0])
         )
 
-        box_range = slice(self.start_from_box - 1, num_boxes - self.trim_last_n_boxes)
+        box_range = slice(self.start_from_box - 1,
+                          num_boxes - self.trim_last_n_boxes)
 
         # Cascade boxes
         for i in range(box_range.start, box_range.stop):
