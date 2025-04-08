@@ -1,4 +1,5 @@
 import sys
+import json
 from PyQt6.QtWidgets import (
     QMainWindow,
     QApplication,
@@ -99,8 +100,11 @@ class MainWindow(QMainWindow):
 
         self.add_spacer_horizontal_line(thickness=1)
 
-        # Processing params
+        #  Processing params
         self.initln_kernel_params()
+
+        #  Generate config button
+        self.initln_generate_config()
 
         # Composition
         self.main_layout.addWidget(self.control_panel, stretch=1)
@@ -111,13 +115,13 @@ class MainWindow(QMainWindow):
     def initln_path_select(self):
         self.path_select = QWidget()
         self.path_select.setLayout(QHBoxLayout())
-        self.lbl_path_select = QLabel(parent=self, text="Feed path")
-        self.fld_path_select = QLineEdit(placeholderText="path...")
+        path_select_input, self.fld_path_select = self.create_labeled_field(
+            "Feed path", "path..."
+        )
         self.btn_path_select = QPushButton(parent=self, text="Browse..")
         self.btn_path_select.clicked.connect(self.dialog_path_select)
         self.btn_path_select.clicked.connect(self.preview.update_image_preview)
-        self.path_select.layout().addWidget(self.lbl_path_select)
-        self.path_select.layout().addWidget(self.fld_path_select)
+        self.path_select.layout().addWidget(path_select_input)
         self.path_select.layout().addWidget(self.btn_path_select)
         self.control_panel.layout().addWidget(self.path_select)
 
@@ -215,13 +219,34 @@ class MainWindow(QMainWindow):
     def initln_feed_details(self):
         feed_details = QWidget()
         feed_details.setLayout(QHBoxLayout())
-        self.id, _ = self.create_labeled_field("Run ID:", placeholder_text="1")
-        self.fps, _ = self.create_labeled_field("Feed FPS:", placeholder_text="0")
-        self.real_rpm, _ = self.create_labeled_field("Real RPM:", placeholder_text="0")
+        self.id, _ = self.create_labeled_field("Run ID", placeholder_text="1")
+        self.fps, _ = self.create_labeled_field("Feed FPS", placeholder_text="0")
+        self.real_rpm, _ = self.create_labeled_field("Real RPM", placeholder_text="0")
         feed_details.layout().addWidget(self.id)
         feed_details.layout().addWidget(self.fps)
         feed_details.layout().addWidget(self.real_rpm)
         self.control_panel.layout().addWidget(feed_details)
+
+    def initln_generate_config(self):
+        config_button = QWidget()
+        config_button.setLayout(QHBoxLayout())
+        btn = QPushButton(text="Generate config")
+        btn.setObjectName("generate_config")
+        btn.pressed.connect(self.generate_config)
+        config_button.layout().addWidget(btn)
+        self.control_panel.layout().addWidget(config_button)
+
+    def generate_config(self):
+        json_params = self.extract_params()
+        with open("args.json", "w", encoding="utf-8") as f:
+            json.dump(json_params, f, ensure_ascii=False, indent=4)
+
+    def extract_params(self):
+        items = self.findChildren(QLineEdit)
+        items_dict = dict()
+        for item in items:
+            items_dict[item.property("label")] = item.text()
+        return items_dict
 
     def initln_mode_select(self):
         bar = QWidget()
@@ -260,6 +285,7 @@ class MainWindow(QMainWindow):
 
         label = QLabel(parent=self, text=label_text)
         field = QLineEdit(placeholderText=placeholder_text)
+        field.setProperty("label", label_text)
 
         container.layout().addWidget(label)
         container.layout().addWidget(field)
@@ -314,49 +340,74 @@ class MainWindow(QMainWindow):
         self.control_panel.layout().addWidget(self.crop_point_select)
 
     def apply_global_styles(self):
-        # Modern, flat style
         self.setStyleSheet("""
             QWidget {
                 font-family: 'Segoe UI', Arial, sans-serif;
             }
-            
+
             QFrame.panel {
                 background-color: white;
                 border-radius: 8px;
                 border: 1px solid #e0e0e0;
             }
-            
+
             QPushButton {
                 background-color: #0078d7;
                 color: white;
-                border: none;
+                border: 2px solid transparent;
                 border-radius: 4px;
                 padding: 6px 12px;
                 font-weight: bold;
             }
-            
+
             QPushButton:hover {
                 background-color: #005a9e;
             }
-            
+
             QPushButton:pressed {
                 background-color: #004275;
             }
-            
+
+            /* Fix for the focus indicator */
+            QPushButton:focus {
+                outline: none;
+                border: none;
+            }
+
+            /* Style for selected buttons */
+            QPushButton:checked {
+                background-color: #004275;
+                border: 2px solid #0078d7;
+            }
+
+            /* Additional focus override for checked buttons */
+            QPushButton:checked:focus {
+                outline: none;
+                border: 2px solid #0078d7;
+            }
+
+            QPushButton#generate_config {
+                background-color: #379937
+            }
+
+            QPushButton#generate_config:hover {
+                background-color: #187718;
+            }
+
+            QPushButton#generate_config:pressed {
+                background-color: #225522
+            }
+
             QLineEdit {
                 border: 1px solid #c0c0c0;
                 border-radius: 4px;
                 padding: 4px;
             }
-            
+
             QLineEdit:focus {
                 border: 1px solid #0078d7;
             }
-            QPushButton:checked {
-                background-color: #004275;
-                outline: 1px solid #002222;
-            }
-            """)
+        """)
 
 
 def main():
