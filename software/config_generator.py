@@ -171,11 +171,13 @@ class MainWindow(QMainWindow):
         self.box_params = QWidget()
         self.box_params.setLayout(QHBoxLayout())
 
-        quadrant, _ = self.create_labeled_field("Quadrant", placeholder_text="1")
+        quadrant, _ = self.create_labeled_field(
+            "Quadrant", placeholder_text="1")
         num_boxes, _ = self.create_labeled_field(
             "Number of boxes", placeholder_text="10"
         )
-        box_size, _ = self.create_labeled_field("Box size", placeholder_text="10")
+        box_size, _ = self.create_labeled_field(
+            "Box size", placeholder_text="10")
         start_from_box, _ = self.create_labeled_field(
             "Start from box", placeholder_text="0"
         )
@@ -220,8 +222,10 @@ class MainWindow(QMainWindow):
         feed_details = QWidget()
         feed_details.setLayout(QHBoxLayout())
         self.id, _ = self.create_labeled_field("Run ID", placeholder_text="1")
-        self.fps, _ = self.create_labeled_field("Feed FPS", placeholder_text="0")
-        self.real_rpm, _ = self.create_labeled_field("Real RPM", placeholder_text="0")
+        self.fps, _ = self.create_labeled_field(
+            "Feed FPS", placeholder_text="0")
+        self.real_rpm, _ = self.create_labeled_field(
+            "Real RPM", placeholder_text="0")
         feed_details.layout().addWidget(self.id)
         feed_details.layout().addWidget(self.fps)
         feed_details.layout().addWidget(self.real_rpm)
@@ -238,6 +242,7 @@ class MainWindow(QMainWindow):
 
     def generate_config(self):
         json_params = self.extract_params()
+        json_params_sanitized = self.json_sanitize(json_params)
         with open("args.json", "w", encoding="utf-8") as f:
             json.dump(json_params, f, ensure_ascii=False, indent=4)
 
@@ -247,6 +252,16 @@ class MainWindow(QMainWindow):
         for item in items:
             items_dict[item.property("label")] = item.text()
         return items_dict
+
+    def json_sanitize(self, args):
+        args["crop_points"] = [
+            [args["from y"], args["to y"]],
+            [args["from x"], args["to x"]],
+        ]
+        del args["from y"]
+        del args["to y"]
+        del args["from x"]
+        del args["to x"]
 
     def initln_mode_select(self):
         bar = QWidget()
@@ -306,7 +321,8 @@ class MainWindow(QMainWindow):
 
             self.xrange = slice(from_x, to_x)
             self.yrange = slice(from_y, to_y)
-            self.preview.update_image_preview(xrange=self.xrange, yrange=self.yrange)
+            self.preview.update_image_preview(
+                xrange=self.xrange, yrange=self.yrange)
 
         except ValueError:
             print("Please enter valid integer values for all crop coordinates")
@@ -324,11 +340,13 @@ class MainWindow(QMainWindow):
         from_x, self.fld_from_x = self.create_labeled_field(
             "from x", placeholder_text="0"
         )
-        to_x, self.fld_to_x = self.create_labeled_field("to x", placeholder_text="1000")
+        to_x, self.fld_to_x = self.create_labeled_field(
+            "to x", placeholder_text="1000")
         from_y, self.fld_from_y = self.create_labeled_field(
             "from y", placeholder_text="0"
         )
-        to_y, self.fld_to_y = self.create_labeled_field("to y", placeholder_text="1000")
+        to_y, self.fld_to_y = self.create_labeled_field(
+            "to y", placeholder_text="1000")
 
         self.refresh_crop = QPushButton(parent=self, text="Refresh")
         self.refresh_crop.clicked.connect(self.update_crop_points)
@@ -421,9 +439,27 @@ def convert_cvimg_to_qimg(cvImg):
     height, width, _ = cvImg.shape
     bytesPerLine = 3 * width
     data = cvImg.tobytes()
-    qImg = QImage(data, width, height, bytesPerLine, QImage.Format.Format_RGB888)
+    qImg = QImage(data, width, height, bytesPerLine,
+                  QImage.Format.Format_RGB888)
     return qImg
 
 
 if __name__ == "__main__":
+    key_map = {
+        "Feed path": "target",
+        "Feed FPS": "fps",
+        "Real RPM": "real_rpm",
+        "Quadrant": "quadrant",
+        "Number of boxes": "target_num_boxes",
+        "Box size": "target_box_size",
+        "Start from box": "start_from_box",
+        "Trim last N boxes": "trim_last_n_boxes",
+        "Frame buffer size": "frame_buffer_size",
+        "Update frequency": "color_delta_update_frequency",
+        "Contrast multiplier": "contrast_multiplier",
+        "Detection threshold multiplier": "threshold_multiplier",
+        "Kernel size": "erosion_dilation_kernel_size",
+        "Dilation iterations": "dilation_iterations",
+        "Erosion iterations": "erosion_iterations",
+    }
     main()
