@@ -85,14 +85,10 @@ def get_rpm_from_flow_vectors(
     for vector in velocity_vectors:
         mag = math.sqrt(vector[0] ** 2 + vector[1] ** 2)
         magnitudes.append(mag)
-    
-    magnitudes = magnitudes.sort()
-    scale_factor = 1/len(magnitudes)
+    magnitudes = magnitudes
+    vel = np.mean(magnitudes)
 
-    filtered_magnitudes = filter_magnitudes(np.array(magnitudes))
-    vel = np.average(filtered_magnitudes)
-
-    rpm = 60 * calculate_frequency(vel, radius, fps)
+    rpm = 60 * calculate_frequency(float(vel), radius, fps)
     return rpm
 
 

@@ -11,6 +11,8 @@ from PyQt6.QtWidgets import (
     QWidget,
     QSizePolicy,
     QButtonGroup,
+    QSpacerItem,
+    QFrame,
 )
 from PyQt6.QtGui import QIcon, QPixmap, QImage
 import cv2
@@ -63,6 +65,7 @@ class MainWindow(QMainWindow):
         self.setGeometry(400, 300, 700, 500)
         self.setWindowIcon(QIcon("assets/gui_icon.png"))
         self.video_path = None
+        self.apply_global_styles()
 
         # Top level layout
         self.main_widget = QWidget()
@@ -79,14 +82,25 @@ class MainWindow(QMainWindow):
         self.control_panel.setLayout(QVBoxLayout())
 
         # Main params
-        self.initln_mode_select()
         self.initln_path_select()
+        self.initln_crop_points()
         self.initln_feed_details()
+
+        self.add_spacer_horizontal_line(thickness=1)
+
+        #  Mode select
+        self.initln_mode_select()
+        self.add_spacer_horizontal_line()
+
+        #  Detection params
         self.initln_box_section_header()
         self.initln_box_params()
+        self.initln_detection_params()
 
-        # Detail params
-        self.initln_crop_points()
+        self.add_spacer_horizontal_line(thickness=1)
+
+        # Processing params
+        self.initln_kernel_params()
 
         # Composition
         self.main_layout.addWidget(self.control_panel, stretch=1)
@@ -107,6 +121,41 @@ class MainWindow(QMainWindow):
         self.path_select.layout().addWidget(self.btn_path_select)
         self.control_panel.layout().addWidget(self.path_select)
 
+    def add_spacer_horizontal_line(self, thickness=1):
+        spacer_container = QWidget()
+        spacer_container.setLayout(QHBoxLayout())
+
+        spacer = QFrame()
+        spacer.setFrameShape(QFrame.Shape.HLine)
+        spacer.setFrameShadow(QFrame.Shadow.Sunken)
+        spacer.setLineWidth(thickness)
+
+        spacer_container.layout().addWidget(spacer)
+        self.control_panel.layout().addWidget(spacer_container)
+
+    def add_empty_space(self, height=10):
+        spacer = QSpacerItem(
+            20, height, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed
+        )
+        self.control_panel.layout().addSpacerItem(spacer)
+
+    def initln_kernel_params(self):
+        self.kernel_params = QWidget()
+        self.kernel_params.setLayout(QHBoxLayout())
+        self.kernel_size, _ = self.create_labeled_field(
+            "Kernel size", placeholder_text="10"
+        )
+        self.dilation_iterations, _ = self.create_labeled_field(
+            "Dilation iterations", placeholder_text="2"
+        )
+        self.erosion_iterations, _ = self.create_labeled_field(
+            "Erosion iterations", placeholder_text="1"
+        )
+        self.kernel_params.layout().addWidget(self.kernel_size)
+        self.kernel_params.layout().addWidget(self.dilation_iterations)
+        self.kernel_params.layout().addWidget(self.erosion_iterations)
+        self.control_panel.layout().addWidget(self.kernel_params)
+
     def initln_box_section_header(self):
         self.box_section_header = QWidget()
         self.box_section_header.setLayout(QHBoxLayout())
@@ -117,31 +166,58 @@ class MainWindow(QMainWindow):
     def initln_box_params(self):
         self.box_params = QWidget()
         self.box_params.setLayout(QHBoxLayout())
-        self.lbl_num_boxes = QLabel(parent=self, text="Number of boxes")
-        self.fld_num_boxes = QLineEdit(placeholderText="10")
-        self.lbl_box_size = QLabel(parent=self, text="Box size")
-        self.fld_box_size = QLineEdit(placeholderText="10")
-        self.lbl_start_from_box = QLabel(parent=self, text="Start from box")
-        self.fld_start_from_box = QLineEdit(placeholderText="0")
-        self.lbl_trim_last_n = QLabel(parent=self, text="Trim last N boxes")
-        self.fld_trim_last_n = QLineEdit(placeholderText="0")
-        self.box_params.layout().addWidget(self.lbl_num_boxes)
-        self.box_params.layout().addWidget(self.fld_num_boxes)
-        self.box_params.layout().addWidget(self.lbl_box_size)
-        self.box_params.layout().addWidget(self.fld_box_size)
-        self.box_params.layout().addWidget(self.lbl_start_from_box)
-        self.box_params.layout().addWidget(self.fld_start_from_box)
-        self.box_params.layout().addWidget(self.lbl_trim_last_n)
-        self.box_params.layout().addWidget(self.fld_trim_last_n)
+
+        quadrant, _ = self.create_labeled_field("Quadrant", placeholder_text="1")
+        num_boxes, _ = self.create_labeled_field(
+            "Number of boxes", placeholder_text="10"
+        )
+        box_size, _ = self.create_labeled_field("Box size", placeholder_text="10")
+        start_from_box, _ = self.create_labeled_field(
+            "Start from box", placeholder_text="0"
+        )
+        trim_last_n, _ = self.create_labeled_field(
+            "Trim last N boxes", placeholder_text="0"
+        )
+
+        self.box_params.layout().addWidget(quadrant)
+        self.box_params.layout().addWidget(num_boxes)
+        self.box_params.layout().addWidget(box_size)
+        self.box_params.layout().addWidget(start_from_box)
+        self.box_params.layout().addWidget(trim_last_n)
         self.control_panel.layout().addWidget(self.box_params)
+
+    def initln_detection_params(self):
+        self.detection_params = QWidget()
+        self.detection_params.setLayout(QHBoxLayout())
+
+        fb_size_container, self.fb_size = self.create_labeled_field(
+            "Frame buffer size", "5"
+        )
+
+        update_frequency_container, self.update_freq = self.create_labeled_field(
+            "Update frequency", "2"
+        )
+
+        contrast_multiplier_container, self.contrast_multiplier = (
+            self.create_labeled_field("Contrast multiplier", "1")
+        )
+
+        threshold_multiplier_container, self.threshold_multiplier = (
+            self.create_labeled_field("Detection threshold multiplier", "1")
+        )
+
+        self.detection_params.layout().addWidget(fb_size_container)
+        self.detection_params.layout().addWidget(update_frequency_container)
+        self.detection_params.layout().addWidget(contrast_multiplier_container)
+        self.detection_params.layout().addWidget(threshold_multiplier_container)
+        self.control_panel.layout().addWidget(self.detection_params)
 
     def initln_feed_details(self):
         feed_details = QWidget()
         feed_details.setLayout(QHBoxLayout())
-        self.id = self.create_labeled_field("Run ID:", placeholder_text="1")
-        self.fps = self.create_labeled_field("Feed FPS:", placeholder_text="0")
-        self.real_rpm = self.create_labeled_field(
-            "Real RPM:", placeholder_text="0")
+        self.id, _ = self.create_labeled_field("Run ID:", placeholder_text="1")
+        self.fps, _ = self.create_labeled_field("Feed FPS:", placeholder_text="0")
+        self.real_rpm, _ = self.create_labeled_field("Real RPM:", placeholder_text="0")
         feed_details.layout().addWidget(self.id)
         feed_details.layout().addWidget(self.fps)
         feed_details.layout().addWidget(self.real_rpm)
@@ -188,15 +264,26 @@ class MainWindow(QMainWindow):
         container.layout().addWidget(label)
         container.layout().addWidget(field)
 
-        return container
+        return container, field
 
     def update_crop_points(self):
-        # from y and to y are flipped on purpose. This is because we follow
-        # real-life y axis and not the pythonic code one (which is flipped)
-        self.xrange = slice(int(self.from_x.text()), int(self.to_x.text()))
-        self.yrange = slice(int(self.from_y.text()), int(self.to_y.text()))
-        self.preview.update_image_preview(
-            xrange=self.xrange, yrange=self.yrange)
+        try:
+            from_x_text = self.fld_from_x.text()
+            to_x_text = self.fld_to_x.text()
+            from_y_text = self.fld_from_y.text()
+            to_y_text = self.fld_to_y.text()
+
+            from_x = int(from_x_text) if from_x_text.strip() else 0
+            to_x = int(to_x_text) if to_x_text.strip() else 100
+            from_y = int(from_y_text) if from_y_text.strip() else 0
+            to_y = int(to_y_text) if to_y_text.strip() else 100
+
+            self.xrange = slice(from_x, to_x)
+            self.yrange = slice(from_y, to_y)
+            self.preview.update_image_preview(xrange=self.xrange, yrange=self.yrange)
+
+        except ValueError:
+            print("Please enter valid integer values for all crop coordinates")
 
     def closeEvent(self, event):
         # This ensures the child window (preview) closes when parent is closed
@@ -207,26 +294,69 @@ class MainWindow(QMainWindow):
     def initln_crop_points(self):
         self.crop_point_select = QWidget()
         self.crop_point_select.setLayout(QHBoxLayout())
-        self.from_x_label = QLabel(parent=self, text="from x")
-        self.from_x = QLineEdit(placeholderText="0")
-        self.to_x_label = QLabel(parent=self, text="to x")
-        self.to_x = QLineEdit(placeholderText="1000")
-        self.from_y_label = QLabel(parent=self, text="from y")
-        self.from_y = QLineEdit(placeholderText="0")
-        self.to_y_label = QLabel(parent=self, text="to y")
-        self.to_y = QLineEdit(placeholderText="1000")
+
+        from_x, self.fld_from_x = self.create_labeled_field(
+            "from x", placeholder_text="0"
+        )
+        to_x, self.fld_to_x = self.create_labeled_field("to x", placeholder_text="1000")
+        from_y, self.fld_from_y = self.create_labeled_field(
+            "from y", placeholder_text="0"
+        )
+        to_y, self.fld_to_y = self.create_labeled_field("to y", placeholder_text="1000")
+
         self.refresh_crop = QPushButton(parent=self, text="Refresh")
         self.refresh_crop.clicked.connect(self.update_crop_points)
-        self.crop_point_select.layout().addWidget(self.from_x_label)
-        self.crop_point_select.layout().addWidget(self.from_x)
-        self.crop_point_select.layout().addWidget(self.to_x_label)
-        self.crop_point_select.layout().addWidget(self.to_x)
-        self.crop_point_select.layout().addWidget(self.from_y_label)
-        self.crop_point_select.layout().addWidget(self.from_y)
-        self.crop_point_select.layout().addWidget(self.to_y_label)
-        self.crop_point_select.layout().addWidget(self.to_y)
+        self.crop_point_select.layout().addWidget(from_x)
+        self.crop_point_select.layout().addWidget(to_x)
+        self.crop_point_select.layout().addWidget(from_y)
+        self.crop_point_select.layout().addWidget(to_y)
         self.crop_point_select.layout().addWidget(self.refresh_crop)
         self.control_panel.layout().addWidget(self.crop_point_select)
+
+    def apply_global_styles(self):
+        # Modern, flat style
+        self.setStyleSheet("""
+            QWidget {
+                font-family: 'Segoe UI', Arial, sans-serif;
+            }
+            
+            QFrame.panel {
+                background-color: white;
+                border-radius: 8px;
+                border: 1px solid #e0e0e0;
+            }
+            
+            QPushButton {
+                background-color: #0078d7;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 12px;
+                font-weight: bold;
+            }
+            
+            QPushButton:hover {
+                background-color: #005a9e;
+            }
+            
+            QPushButton:pressed {
+                background-color: #004275;
+            }
+            
+            QLineEdit {
+                border: 1px solid #c0c0c0;
+                border-radius: 4px;
+                padding: 4px;
+            }
+            
+            QLineEdit:focus {
+                border: 1px solid #0078d7;
+            }
+            QPushButton:checked {
+                background-color: #004275;
+                outline: 1px solid #002222;
+            }
+            """)
 
 
 def main():
@@ -240,8 +370,7 @@ def convert_cvimg_to_qimg(cvImg):
     height, width, _ = cvImg.shape
     bytesPerLine = 3 * width
     data = cvImg.tobytes()
-    qImg = QImage(data, width, height, bytesPerLine,
-                  QImage.Format.Format_RGB888)
+    qImg = QImage(data, width, height, bytesPerLine, QImage.Format.Format_RGB888)
     return qImg
 
 
