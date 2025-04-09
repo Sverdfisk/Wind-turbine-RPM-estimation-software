@@ -96,6 +96,7 @@ class MainWindow(QMainWindow):
         #  Detection params
         self.initln_box_section_header()
         self.initln_box_params()
+        self.initln_box_stacking()
         self.initln_detection_params()
 
         self.add_spacer_horizontal_line(thickness=1)
@@ -167,6 +168,36 @@ class MainWindow(QMainWindow):
         self.box_section_header.layout().addWidget(lbl_header)
         self.control_panel.layout().addWidget(self.box_section_header)
 
+    def initln_box_stacking(self):
+        self.box_stack_container = QWidget()
+        self.box_stack_container.setLayout(QHBoxLayout())
+
+        section_label = QLabel(text="Stack boxes")
+
+        stack_mode_hor = QPushButton(parent=self, text="Horizontal")
+        stack_mode_hor.setCheckable(True)
+        stack_mode_hor.setAutoExclusive(True)
+        stack_mode_hor.setChecked(True)
+
+        stack_mode_vert = QPushButton(parent=self, text="Vertical")
+        stack_mode_vert.setCheckable(True)
+        stack_mode_vert.setAutoExclusive(True)
+
+        stack_mode_diag = QPushButton(parent=self, text="Diagonal")
+        stack_mode_diag.setCheckable(True)
+        stack_mode_diag.setAutoExclusive(True)
+
+        self.stack_group = QButtonGroup()
+        self.stack_group.addButton(stack_mode_hor)
+        self.stack_group.addButton(stack_mode_vert)
+        self.stack_group.addButton(stack_mode_diag)
+
+        self.box_stack_container.layout().addWidget(section_label)
+        self.box_stack_container.layout().addWidget(stack_mode_hor)
+        self.box_stack_container.layout().addWidget(stack_mode_vert)
+        self.box_stack_container.layout().addWidget(stack_mode_diag)
+        self.control_panel.layout().addWidget(self.box_stack_container)
+
     def initln_box_params(self):
         self.box_params = QWidget()
         self.box_params.setLayout(QHBoxLayout())
@@ -234,26 +265,52 @@ class MainWindow(QMainWindow):
     def initln_generate_config(self):
         config_button = QWidget()
         config_button.setLayout(QHBoxLayout())
+        save_path_container, self.save_path_field = self.create_labeled_field(
+            "Save as", placeholder_text="config.json"
+        )
         btn = QPushButton(text="Generate config")
         btn.setObjectName("generate_config")
         btn.pressed.connect(self.generate_config)
+        config_button.layout().addWidget(save_path_container)
         config_button.layout().addWidget(btn)
         self.control_panel.layout().addWidget(config_button)
 
     def generate_config(self):
         json_params = self.extract_params()
         json_params_sanitized = self.json_sanitize(json_params)
-        with open("args.json", "w", encoding="utf-8") as f:
-            json.dump(json_params, f, ensure_ascii=False, indent=4)
+
+        file_loc = self.save_path_field.text()
+        file_loc = "config/config.json" if file_loc is None else file_loc
+
+        with open(f"config/{file_loc}", "w", encoding="utf-8") as f:
+            json.dump(json_params_sanitized, f, ensure_ascii=False, indent=4)
 
     def extract_params(self):
         items = self.findChildren(QLineEdit)
         items_dict = dict()
         for item in items:
             items_dict[item.property("label")] = item.text()
+
+        stack_method = self.stack_group.checkedButton().text()
+        if stack_method == "Horizontal":
+            items_dict["stack_boxes_vertically"] = False
+            items_dict["stack_boxes_horizontally"] = True
+        elif stack_method == "Vertical":
+            items_dict["stack_boxes_vertically"] = True
+            items_dict["stack_boxes_horizontally"] = False
+        elif stack_method == "Diagonal":
+            items_dict["stack_boxes_vertically"] = False
+            items_dict["stack_boxes_horizontally"] = False
+
+        mode = self.mode_group.checkedButton().text()
+        if mode == "BPM":
+            items_dict["mode"] = "bpm"
+        else:
+            items_dict["mode"] = "opticalflow"
+
         return items_dict
 
-    def json_sanitize(self, args):
+    def json_sanitize(self, args: dict) -> dict:
         args["crop_points"] = [
             [args["from y"], args["to y"]],
             [args["from x"], args["to x"]],
@@ -262,6 +319,43 @@ class MainWindow(QMainWindow):
         del args["to y"]
         del args["from x"]
         del args["to x"]
+        remapped_args = {key_map.get(k, k): v for k, v in args.items()}
+        remapped_args["resize_boxes"] = False
+        remapped_args["adjust_num_boxes"] = False
+        for item in remapped_args:
+            if item == "target":
+                remapped_args[item] = str(remapped_args[item])
+                continue
+            if (
+                item == "contrast_multiplier"
+                or item == "threshold_multiplier"
+                or item == "fps"
+                or item == "real_rpm"
+            ):
+                remapped_args[item] = float(remapped_args[item])
+                continue
+            if item == "crop_points":
+                for pair in remapped_args[item]:
+                    pair[0] = int(pair[0])
+                    pair[1] = int(pair[1])
+                continue
+            if item == "stack_boxes_horizontally" or item == "stack_boxes_vertically":
+                continue
+            if item == "Save as":
+                continue
+            if item == "mode":
+                continue
+            if item == "erosion_dilation_kernel_size":
+                remapped_args["erosion_dilation_kernel_size"] = [
+                    int(float(remapped_args["erosion_dilation_kernel_size"])),
+                    int(float(remapped_args["erosion_dilation_kernel_size"])),
+                ]
+                continue
+
+            # We should have escaped all the baddies by now, so this is practically an else clause
+            remapped_args[item] = int(float(remapped_args[item]))
+
+        return remapped_args
 
     def initln_mode_select(self):
         bar = QWidget()
@@ -276,9 +370,9 @@ class MainWindow(QMainWindow):
         opticalflow_mode.setCheckable(True)
         opticalflow_mode.setAutoExclusive(True)
 
-        group = QButtonGroup()
-        group.addButton(bpm_mode)
-        group.addButton(opticalflow_mode)
+        self.mode_group = QButtonGroup()
+        self.mode_group.addButton(bpm_mode)
+        self.mode_group.addButton(opticalflow_mode)
 
         bar.layout().addWidget(bpm_mode)
         bar.layout().addWidget(opticalflow_mode)
@@ -461,5 +555,6 @@ if __name__ == "__main__":
         "Kernel size": "erosion_dilation_kernel_size",
         "Dilation iterations": "dilation_iterations",
         "Erosion iterations": "erosion_iterations",
+        "Run ID": "id",
     }
     main()
