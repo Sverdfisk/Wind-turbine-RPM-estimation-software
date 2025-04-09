@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
     QButtonGroup,
     QSpacerItem,
     QFrame,
+    QDialog,
 )
 from PyQt6.QtGui import QIcon, QPixmap, QImage
 import cv2
@@ -279,8 +280,11 @@ class MainWindow(QMainWindow):
         json_params = self.extract_params()
         json_params_sanitized = self.json_sanitize(json_params)
 
-        file_loc = self.save_path_field.text()
-        file_loc = "config/config.json" if file_loc is None else file_loc
+        file_loc = (
+            self.save_path_field.text()
+            if self.save_path_field.text() != ""
+            else self.save_path_field.placeholderText()
+        )
 
         with open(f"config/{file_loc}", "w", encoding="utf-8") as f:
             json.dump(json_params_sanitized, f, ensure_ascii=False, indent=4)
@@ -289,7 +293,10 @@ class MainWindow(QMainWindow):
         items = self.findChildren(QLineEdit)
         items_dict = dict()
         for item in items:
-            items_dict[item.property("label")] = item.text()
+            if item.text() != "":
+                items_dict[item.property("label")] = item.text()
+            else:
+                items_dict[item.property("label")] = item.placeholderText()
 
         stack_method = self.stack_group.checkedButton().text()
         if stack_method == "Horizontal":
