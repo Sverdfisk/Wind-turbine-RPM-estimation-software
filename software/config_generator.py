@@ -1,4 +1,5 @@
 import sys
+import subprocess
 import json
 from PyQt6.QtWidgets import (
     QMainWindow,
@@ -16,9 +17,58 @@ from PyQt6.QtWidgets import (
     QFormLayout,
     QGridLayout,
     QStackedWidget,
+    QDialog,
+    QDialogButtonBox,
 )
 from PyQt6.QtGui import QIcon, QPixmap, QImage
 import cv2
+
+
+class CustomDialog(QDialog):
+    def __init__(self, parent, success=False):
+        super().__init__()
+        self.parent = parent
+
+        QBtn = (
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+
+        self.buttonBox = QDialogButtonBox(QBtn)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+        if success:
+            self.setWindowTitle("Config generation successful!")
+            self.buttonBox.button(QDialogButtonBox.StandardButton.Ok).setText("Run now")
+            self.buttonBox.button(QDialogButtonBox.StandardButton.Cancel).setText(
+                "Exit"
+            )
+            message = QLabel(
+                f"Config generation was successful and the file written to {
+                    self.parent.file_loc
+                }."
+            )
+            message2 = QLabel(
+                f'Press "Run now" to run your config file, or "Exit" to quit the config generator.'
+            )
+        else:
+            self.setWindowTitle("Config generation failed!")
+            message = QLabel(
+                "Config file generation was unsuccessful. The config file may not have been generated."
+            )
+            message2 = QLabel(
+                f'Press "Run now" to try to run your config file anyway, or "Exit" to quit the config generator.'
+            )
+            self.buttonBox.button(QDialogButtonBox.StandardButton.Ok).setText("Run now")
+            self.buttonBox.button(QDialogButtonBox.StandardButton.Cancel).setText(
+                "Exit"
+            )
+
+        layout = QVBoxLayout()
+        layout.addWidget(message)
+        layout.addWidget(message2)
+        layout.addWidget(self.buttonBox)
+        self.setLayout(layout)
 
 
 class PreviewWindow(QWidget):
@@ -86,16 +136,14 @@ class MainWindow(QMainWindow):
 
         # The mode-dependent panel with parameters
         self.bpm_mode_config_panel = QWidget()
-        self.bpm_mode_config_panel_layout = QVBoxLayout(
-            self.bpm_mode_config_panel)
+        self.bpm_mode_config_panel_layout = QVBoxLayout(self.bpm_mode_config_panel)
 
         self.opticalflow_mode_config_panel = QWidget()
         self.opticalflow_mode_config_panel_layout = QVBoxLayout(
             self.opticalflow_mode_config_panel
         )
         self.opticalflow_mode_config_panel.setSizePolicy(
-            QSizePolicy(QSizePolicy.Policy.Preferred,
-                        QSizePolicy.Policy.Maximum)
+            QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         )
         self.update_panel_max_height()
 
@@ -223,8 +271,7 @@ class MainWindow(QMainWindow):
         self.deadzone_layout.addWidget(dzoffy_lbl, 1, 2)
         self.deadzone_layout.addWidget(dzoffy_fld, 1, 3)
 
-        self.opticalflow_mode_config_panel_layout.addWidget(
-            self.deadzone_params)
+        self.opticalflow_mode_config_panel_layout.addWidget(self.deadzone_params)
 
     def initln_kernel_params(self):
         self.kernel_params = QGroupBox("Image region processing parameters")
@@ -326,8 +373,7 @@ class MainWindow(QMainWindow):
         )
 
         update_frequency_container, update_freq_fld, update_freq_lbl = (
-            self.create_labeled_field(
-                "Update frequency", "2", objname="input_field")
+            self.create_labeled_field("Update frequency", "2", objname="input_field")
         )
 
         (
@@ -350,8 +396,7 @@ class MainWindow(QMainWindow):
         self.detection_params_layout.addWidget(update_freq_fld, 0, 3)
         self.detection_params_layout.addWidget(contrast_multiplier_label, 1, 0)
         self.detection_params_layout.addWidget(contrast_multiplier_fld, 1, 1)
-        self.detection_params_layout.addWidget(
-            threshold_multiplier_label, 1, 2)
+        self.detection_params_layout.addWidget(threshold_multiplier_label, 1, 2)
         self.detection_params_layout.addWidget(threshold_multiplier_fld, 1, 3)
 
         self.bpm_mode_config_panel_layout.addWidget(self.detection_params)
@@ -377,18 +422,15 @@ class MainWindow(QMainWindow):
 
     def update_mode_dependent_params_view(self):
         if self.mode_group.checkedButton().text() == "BPM":
-            self.mode_stack_manager.setCurrentWidget(
-                self.bpm_mode_config_panel)
+            self.mode_stack_manager.setCurrentWidget(self.bpm_mode_config_panel)
         else:
-            self.mode_stack_manager.setCurrentWidget(
-                self.opticalflow_mode_config_panel)
+            self.mode_stack_manager.setCurrentWidget(self.opticalflow_mode_config_panel)
 
     def initln_generate_config(self):
         config_button = QWidget()
         config_button_layout = QHBoxLayout(config_button)
         save_path_container, self.save_path_field, save_path_label = (
-            self.create_labeled_field(
-                "Save as", placeholder_text="config.json")
+            self.create_labeled_field("Save as", placeholder_text="config.json")
         )
 
         btn = QPushButton(text="Generate config")
@@ -403,14 +445,37 @@ class MainWindow(QMainWindow):
         json_params = self.extract_params()
         json_params_sanitized = self.json_sanitize(json_params)
 
-        file_loc = (
+        self.file_loc = (
             self.save_path_field.text()
             if self.save_path_field.text() != ""
             else self.save_path_field.placeholderText()
         )
 
-        with open(f"config/{file_loc}", "w", encoding="utf-8") as f:
-            json.dump(json_params_sanitized, f, ensure_ascii=False, indent=4)
+        try:
+            with open(f"config/{self.file_loc}", "w", encoding="utf-8") as f:
+                json.dump(json_params_sanitized, f, ensure_ascii=False, indent=4)
+            result = CustomDialog(self, success=True).exec()
+            if result == QDialog.DialogCode.Accepted:
+                out = subprocess.run(
+                    f"python main.py config/{self.file_loc}",
+                    shell=True,
+                    capture_output=True,
+                )
+                print(self.file_loc)
+                print(out.stdout)
+                print(out.stderr)
+            else:
+                sys.exit(0)
+
+        except Exception as e:
+            print(e)
+            result = CustomDialog(self, success=False).exec()
+            if result == QDialog.DialogCode.accepted:
+                subprocess.run(
+                    ["python", "mode-dependentain.py", f"config/{self.file_loc}"]
+                )
+            else:
+                sys.exit(1)
 
     def extract_params(self):
         items = self.findChildren(QLineEdit)
@@ -521,8 +586,7 @@ class MainWindow(QMainWindow):
 
         self.mode_group.addButton(bpm_mode)
         self.mode_group.addButton(opticalflow_mode)
-        self.mode_group.buttonToggled.connect(
-            self.update_mode_dependent_params_view)
+        self.mode_group.buttonToggled.connect(self.update_mode_dependent_params_view)
 
         bar_layout.addWidget(bpm_mode)
         bar_layout.addWidget(opticalflow_mode)
@@ -569,8 +633,7 @@ class MainWindow(QMainWindow):
 
             self.xrange = slice(from_x, to_x)
             self.yrange = slice(from_y, to_y)
-            self.preview.update_image_preview(
-                xrange=self.xrange, yrange=self.yrange)
+            self.preview.update_image_preview(xrange=self.xrange, yrange=self.yrange)
 
         except ValueError:
             print("Please enter valid integer values for all crop coordinates")
@@ -831,8 +894,7 @@ class MainWindow(QMainWindow):
         self.update_panel_max_height()
 
     def update_panel_max_height(self):
-        self.opticalflow_mode_config_panel.setMaximumHeight(
-            int(self.height() * 0.6))
+        self.opticalflow_mode_config_panel.setMaximumHeight(int(self.height() * 0.6))
         self.bpm_mode_config_panel.setMaximumHeight(int(self.height() * 0.85))
 
 
@@ -847,8 +909,7 @@ def convert_cvimg_to_qimg(cvImg):
     height, width, _ = cvImg.shape
     bytesPerLine = 3 * width
     data = cvImg.tobytes()
-    qImg = QImage(data, width, height, bytesPerLine,
-                  QImage.Format.Format_RGB888)
+    qImg = QImage(data, width, height, bytesPerLine, QImage.Format.Format_RGB888)
     return qImg
 
 
