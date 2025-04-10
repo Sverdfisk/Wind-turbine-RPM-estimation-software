@@ -12,12 +12,10 @@ from PyQt6.QtWidgets import (
     QWidget,
     QSizePolicy,
     QButtonGroup,
-    QSpacerItem,
-    QFrame,
-    QDialog,
     QGroupBox,
     QFormLayout,
     QGridLayout,
+    QStackedWidget,
 )
 from PyQt6.QtGui import QIcon, QPixmap, QImage
 import cv2
@@ -86,6 +84,25 @@ class MainWindow(QMainWindow):
         self.control_panel = QWidget()
         self.control_panel.setLayout(QVBoxLayout())
 
+        # The mode-dependent panel with parameters
+        self.bpm_mode_config_panel = QWidget()
+        self.bpm_mode_config_panel_layout = QVBoxLayout(
+            self.bpm_mode_config_panel)
+
+        self.opticalflow_mode_config_panel = QWidget()
+        self.opticalflow_mode_config_panel_layout = QVBoxLayout(
+            self.opticalflow_mode_config_panel
+        )
+        self.opticalflow_mode_config_panel.setSizePolicy(
+            QSizePolicy(QSizePolicy.Policy.Preferred,
+                        QSizePolicy.Policy.Maximum)
+        )
+        self.update_panel_max_height()
+
+        self.mode_stack_manager = QStackedWidget()
+        self.mode_stack_manager.addWidget(self.bpm_mode_config_panel)
+        self.mode_stack_manager.addWidget(self.opticalflow_mode_config_panel)
+
         # Main params
         self.initln_path_select()
         self.initln_crop_points()
@@ -93,22 +110,31 @@ class MainWindow(QMainWindow):
 
         #  Mode select
         self.initln_mode_select()
+        self.update_mode_dependent_params_view()
 
-        #  Detection params
+        #  BPM: Detection params
         self.initln_box_params()
         self.initln_box_stacking()
         self.initln_detection_params()
 
-        #  Processing params
+        #  BPM: Processing params
         self.initln_kernel_params()
 
-        #  Generate config button
+        #  BPM: Generate config button
         self.initln_generate_config()
+
+        #  Opticalflow: deadzone parameters
+        self.initln_deadzone_shape()
+        self.initln_deadzone_params()
+
+        #  Opticalflow: constants for calculation
+        self.initln_calc_constants()
 
         # Composition
         self.main_layout.addWidget(self.control_panel, stretch=1)
+        self.main_layout.addWidget(self.mode_stack_manager, stretch=1)
+
         self.preview.show()
-        # self.main_layout.addWidget(self.preview, stretch=1)
         self.main_widget.setLayout(self.main_layout)
 
     def initln_path_select(self):
@@ -128,23 +154,77 @@ class MainWindow(QMainWindow):
         self.path_select_layout.addRow(path_select_input)
         self.control_panel.layout().addWidget(self.path_select)
 
-    def add_spacer_horizontal_line(self, thickness=1):
-        spacer_container = QWidget()
-        spacer_container.setLayout(QHBoxLayout())
+    def initln_deadzone_shape(self):
+        shapeselect = QGroupBox("Deadzone shape selection")
+        shapeselect_layout = QHBoxLayout(shapeselect)
 
-        spacer = QFrame()
-        spacer.setFrameShape(QFrame.Shape.HLine)
-        spacer.setFrameShadow(QFrame.Shadow.Sunken)
-        spacer.setLineWidth(thickness)
+        self.shape_group = QButtonGroup()
 
-        spacer_container.layout().addWidget(spacer)
-        self.control_panel.layout().addWidget(spacer_container)
+        circle_mode = QPushButton(parent=self, text="Circle")
+        circle_mode.setCheckable(True)
+        circle_mode.setAutoExclusive(True)
+        circle_mode.setChecked(True)
+        circle_mode.setObjectName("orientation_button")
 
-    def add_empty_space(self, height=10):
-        spacer = QSpacerItem(
-            20, height, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed
+        square_mode = QPushButton(parent=self, text="Square")
+        square_mode.setCheckable(True)
+        square_mode.setAutoExclusive(True)
+        square_mode.setObjectName("orientation_button")
+
+        self.shape_group.addButton(circle_mode)
+        self.shape_group.addButton(square_mode)
+
+        shapeselect_layout.addWidget(circle_mode)
+        shapeselect_layout.addWidget(square_mode)
+
+        self.opticalflow_mode_config_panel_layout.addWidget(shapeselect)
+
+    def initln_calc_constants(self):
+        self.calc_params = QGroupBox("Flow vector RPM calculation constants")
+        self.calc_params_layout = QGridLayout(self.calc_params)
+
+        ga, ga_fld, ga_lbl = self.create_labeled_field(
+            "Ground angle", placeholder_text="0.7", objname="input_field"
         )
-        self.control_panel.layout().addSpacerItem(spacer)
+        pt, pt_fld, pt_lbl = self.create_labeled_field(
+            "Pixel tracking threshold", placeholder_text="10", objname="input_field"
+        )
+
+        self.calc_params_layout.addWidget(ga_lbl, 0, 0)
+        self.calc_params_layout.addWidget(ga_fld, 0, 1)
+        self.calc_params_layout.addWidget(pt_lbl, 0, 2)
+        self.calc_params_layout.addWidget(pt_fld, 0, 3)
+
+        self.opticalflow_mode_config_panel_layout.addWidget(self.calc_params)
+
+    def initln_deadzone_params(self):
+        self.deadzone_params = QGroupBox("Dead zone parameters")
+        self.deadzone_layout = QGridLayout(self.deadzone_params)
+
+        dzx, dzx_fld, dzx_lbl = self.create_labeled_field(
+            "Deadzone size x", placeholder_text="10", objname="input_field"
+        )
+        dzy, dzy_fld, dzy_lbl = self.create_labeled_field(
+            "Deadzone size y", placeholder_text="10", objname="input_field"
+        )
+        dzoffx, dzoffx_fld, dzoffx_lbl = self.create_labeled_field(
+            "Deadzone offset x", placeholder_text="0", objname="input_field"
+        )
+        dzoffy, dzoffy_fld, dzoffy_lbl = self.create_labeled_field(
+            "Deadzone offset y", placeholder_text="0", objname="input_field"
+        )
+
+        self.deadzone_layout.addWidget(dzx_lbl, 0, 0)
+        self.deadzone_layout.addWidget(dzx_fld, 0, 1)
+        self.deadzone_layout.addWidget(dzy_lbl, 0, 2)
+        self.deadzone_layout.addWidget(dzy_fld, 0, 3)
+        self.deadzone_layout.addWidget(dzoffx_lbl, 1, 0)
+        self.deadzone_layout.addWidget(dzoffx_fld, 1, 1)
+        self.deadzone_layout.addWidget(dzoffy_lbl, 1, 2)
+        self.deadzone_layout.addWidget(dzoffy_fld, 1, 3)
+
+        self.opticalflow_mode_config_panel_layout.addWidget(
+            self.deadzone_params)
 
     def initln_kernel_params(self):
         self.kernel_params = QGroupBox("Image region processing parameters")
@@ -171,7 +251,7 @@ class MainWindow(QMainWindow):
         self.kernel_params_layout.addWidget(erosion_iterations_lbl, 0, 4)
         self.kernel_params_layout.addWidget(erosion_iterations_fld, 0, 5)
 
-        self.control_panel.layout().addWidget(self.kernel_params)
+        self.bpm_mode_config_panel_layout.addWidget(self.kernel_params)
 
     def initln_box_stacking(self):
         self.box_stack_container = QGroupBox("Box stacking orientation")
@@ -200,7 +280,7 @@ class MainWindow(QMainWindow):
         self.box_stack_container_layout.addWidget(stack_mode_vert)
         self.box_stack_container_layout.addWidget(stack_mode_diag)
 
-        self.control_panel.layout().addWidget(self.box_stack_container)
+        self.bpm_mode_config_panel_layout.addWidget(self.box_stack_container)
 
     def initln_box_params(self):
         self.box_params = QGroupBox("Detection zone configuration")
@@ -235,7 +315,7 @@ class MainWindow(QMainWindow):
         box_params_layout.addWidget(trim_last_n_label, 1, 2)
         box_params_layout.addWidget(trim_last_n_fld, 1, 3)
 
-        self.control_panel.layout().addWidget(self.box_params)
+        self.bpm_mode_config_panel_layout.addWidget(self.box_params)
 
     def initln_detection_params(self):
         self.detection_params = QGroupBox("Detection parameters")
@@ -246,7 +326,8 @@ class MainWindow(QMainWindow):
         )
 
         update_frequency_container, update_freq_fld, update_freq_lbl = (
-            self.create_labeled_field("Update frequency", "2", objname="input_field")
+            self.create_labeled_field(
+                "Update frequency", "2", objname="input_field")
         )
 
         (
@@ -269,10 +350,11 @@ class MainWindow(QMainWindow):
         self.detection_params_layout.addWidget(update_freq_fld, 0, 3)
         self.detection_params_layout.addWidget(contrast_multiplier_label, 1, 0)
         self.detection_params_layout.addWidget(contrast_multiplier_fld, 1, 1)
-        self.detection_params_layout.addWidget(threshold_multiplier_label, 1, 2)
+        self.detection_params_layout.addWidget(
+            threshold_multiplier_label, 1, 2)
         self.detection_params_layout.addWidget(threshold_multiplier_fld, 1, 3)
 
-        self.control_panel.layout().addWidget(self.detection_params)
+        self.bpm_mode_config_panel_layout.addWidget(self.detection_params)
 
     def initln_feed_details(self):
         feed_details = QGroupBox("Basic feed parameters")
@@ -293,11 +375,20 @@ class MainWindow(QMainWindow):
         feed_details_layout.addRow(rpm_label, rpm_field)
         self.control_panel.layout().addWidget(feed_details)
 
+    def update_mode_dependent_params_view(self):
+        if self.mode_group.checkedButton().text() == "BPM":
+            self.mode_stack_manager.setCurrentWidget(
+                self.bpm_mode_config_panel)
+        else:
+            self.mode_stack_manager.setCurrentWidget(
+                self.opticalflow_mode_config_panel)
+
     def initln_generate_config(self):
         config_button = QWidget()
         config_button_layout = QHBoxLayout(config_button)
         save_path_container, self.save_path_field, save_path_label = (
-            self.create_labeled_field("Save as", placeholder_text="config.json")
+            self.create_labeled_field(
+                "Save as", placeholder_text="config.json")
         )
 
         btn = QPushButton(text="Generate config")
@@ -351,25 +442,45 @@ class MainWindow(QMainWindow):
 
     def json_sanitize(self, args: dict) -> dict:
         args["crop_points"] = [
-            [args["from y"], args["to y"]],
-            [args["from x"], args["to x"]],
+            [args["From y"], args["To y"]],
+            [args["From x"], args["To x"]],
         ]
-        del args["from y"]
-        del args["to y"]
-        del args["from x"]
-        del args["to x"]
+        del args["From y"]
+        del args["To y"]
+        del args["From x"]
+        del args["To x"]
+
+        args["deadzone_size"] = [
+            int(args["Deadzone size x"]),
+            int(args["Deadzone size y"]),
+        ]
+        del args["Deadzone size x"]
+        del args["Deadzone size y"]
+
+        args["deadzone_shape"] = self.shape_group.checkedButton().text().lower()
+
         remapped_args = {key_map.get(k, k): v for k, v in args.items()}
         remapped_args["resize_boxes"] = False
         remapped_args["adjust_num_boxes"] = False
+
+        items_to_skip = [
+            "target",
+            "stack_boxes_horizontally",
+            "stack_boxes_vertically",
+            "Save as",
+            "mode",
+            "deadzone_size",
+            "deadzone_shape",
+        ]
         for item in remapped_args:
-            if item == "target":
-                remapped_args[item] = str(remapped_args[item])
+            if item in items_to_skip:
                 continue
             if (
                 item == "contrast_multiplier"
                 or item == "threshold_multiplier"
                 or item == "fps"
                 or item == "real_rpm"
+                or item == "ground_angle"
             ):
                 remapped_args[item] = float(remapped_args[item])
                 continue
@@ -378,12 +489,7 @@ class MainWindow(QMainWindow):
                     pair[0] = int(pair[0])
                     pair[1] = int(pair[1])
                 continue
-            if item == "stack_boxes_horizontally" or item == "stack_boxes_vertically":
-                continue
-            if item == "Save as":
-                continue
-            if item == "mode":
-                continue
+
             if item == "erosion_dilation_kernel_size":
                 remapped_args["erosion_dilation_kernel_size"] = [
                     int(float(remapped_args["erosion_dilation_kernel_size"])),
@@ -415,6 +521,8 @@ class MainWindow(QMainWindow):
 
         self.mode_group.addButton(bpm_mode)
         self.mode_group.addButton(opticalflow_mode)
+        self.mode_group.buttonToggled.connect(
+            self.update_mode_dependent_params_view)
 
         bar_layout.addWidget(bpm_mode)
         bar_layout.addWidget(opticalflow_mode)
@@ -461,7 +569,8 @@ class MainWindow(QMainWindow):
 
             self.xrange = slice(from_x, to_x)
             self.yrange = slice(from_y, to_y)
-            self.preview.update_image_preview(xrange=self.xrange, yrange=self.yrange)
+            self.preview.update_image_preview(
+                xrange=self.xrange, yrange=self.yrange)
 
         except ValueError:
             print("Please enter valid integer values for all crop coordinates")
@@ -477,16 +586,16 @@ class MainWindow(QMainWindow):
         self.coord_layout = QGridLayout(self.coord_group)
 
         from_x, self.fld_from_x, _ = self.create_labeled_field(
-            "from x", placeholder_text="0", objname="input_field"
+            "From x", placeholder_text="0", objname="input_field"
         )
         to_x, self.fld_to_x, _ = self.create_labeled_field(
-            "to x", placeholder_text="1000", objname="input_field"
+            "To x", placeholder_text="1000", objname="input_field"
         )
         from_y, self.fld_from_y, _ = self.create_labeled_field(
-            "from y", placeholder_text="0", objname="input_field"
+            "From y", placeholder_text="0", objname="input_field"
         )
         to_y, self.fld_to_y, _ = self.create_labeled_field(
-            "to y", placeholder_text="1000", objname="input_field"
+            "To y", placeholder_text="1000", objname="input_field"
         )
 
         self.refresh_crop = QPushButton(parent=self, text="Refresh")
@@ -510,7 +619,7 @@ class MainWindow(QMainWindow):
         self.setStyleSheet("""
         QWidget {
             font-family: 'Segoe UI', Arial, sans-serif;
-            background-color: #f9f9f9;
+            background-color: #f0f0f0;
             font-size: 10pt;
         }
 
@@ -522,7 +631,7 @@ class MainWindow(QMainWindow):
 
         /* Main container */
         QWidget#main_container {
-            background-color: #f9f9f9;
+            background-color: #f0f0f0;
             padding: 15px;
         }
 
@@ -537,12 +646,12 @@ class MainWindow(QMainWindow):
         /* Group box styling */
         QGroupBox {
             font-weight: bold;
-            border: 1px solid #e0e0e0;
+            border: 1px solid #d0d0d0;
             border-radius: 6px;
-            background-color: white;
+            background-color: #f0f0f0;
             margin-top: 15px;
-            padding-top: 15px;
-            padding-bottom: 8px;
+            padding-top: 10px;
+            padding-bottom: 6px;
         }
 
         QGroupBox::title {
@@ -557,7 +666,7 @@ class MainWindow(QMainWindow):
             border: 1px solid #d0d0d0;
             border-radius: 4px;
             padding: 8px;
-            background-color: white;
+            background-color: #f0f0f0;
             selection-background-color: #0078d7;
             min-height: 16px;
         }
@@ -658,7 +767,7 @@ class MainWindow(QMainWindow):
 
         QPushButton#orientation_button:hover, 
         QPushButton[checkable="true"]:hover {
-            background-color: #e0e0e0;
+            background-color: #f0f0f0;
         }
 
         QPushButton#orientation_button:checked,
@@ -683,7 +792,7 @@ class MainWindow(QMainWindow):
         QFrame[frameShape="4"], 
         QFrame[frameShape="5"], 
         QFrame.separator_line {
-            background-color: #e0e0e0;
+            background-color: #f0f0f0;
             max-height: 1px;
             min-height: 1px;
             border: none;
@@ -697,25 +806,34 @@ class MainWindow(QMainWindow):
         /* Form field labels */
         QLabel.field_label, 
         QLabel {
-            color: #333333;
             font-weight: 500;
+            background-color: #f0f0f0
         }
 
         /* Preview panel styling */
         QLabel#image_preview {
             background-color: white;
-            border: 1px solid #d0d0d0;
+            border: 1px solid #f0f0f0;
             border-radius: 4px;
         }
 
         /* Tooltips */
         QToolTip {
-            background-color: #ffffdd;
+            background-color: #f0f0f0;
             color: #333333;
             border: 1px solid #ddddcc;
             padding: 3px;
         }
         """)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.update_panel_max_height()
+
+    def update_panel_max_height(self):
+        self.opticalflow_mode_config_panel.setMaximumHeight(
+            int(self.height() * 0.6))
+        self.bpm_mode_config_panel.setMaximumHeight(int(self.height() * 0.85))
 
 
 def main():
@@ -729,7 +847,8 @@ def convert_cvimg_to_qimg(cvImg):
     height, width, _ = cvImg.shape
     bytesPerLine = 3 * width
     data = cvImg.tobytes()
-    qImg = QImage(data, width, height, bytesPerLine, QImage.Format.Format_RGB888)
+    qImg = QImage(data, width, height, bytesPerLine,
+                  QImage.Format.Format_RGB888)
     return qImg
 
 
@@ -751,5 +870,10 @@ if __name__ == "__main__":
         "Dilation iterations": "dilation_iterations",
         "Erosion iterations": "erosion_iterations",
         "Run ID": "id",
+        "Ground angle": "ground_angle",
+        "Pixel tracking threshold": "pixel_threshold",
+        "Deadzone offset x": "deadzone_offset_x",
+        "Deadzone offset y": "deadzone_offset_y",
+        "Deadzone shape": "deadzone_shape",
     }
     main()
