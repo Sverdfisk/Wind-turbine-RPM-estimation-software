@@ -461,9 +461,7 @@ class MainWindow(QMainWindow):
                     shell=True,
                     capture_output=True,
                 )
-                print(self.file_loc)
-                print(out.stdout)
-                print(out.stderr)
+                print(out)
             else:
                 sys.exit(0)
 
@@ -471,9 +469,7 @@ class MainWindow(QMainWindow):
             print(e)
             result = CustomDialog(self, success=False).exec()
             if result == QDialog.DialogCode.accepted:
-                subprocess.run(
-                    ["python", "mode-dependentain.py", f"config/{self.file_loc}"]
-                )
+                subprocess.run(f"python main.py config/{self.file_loc}")
             else:
                 sys.exit(1)
 
