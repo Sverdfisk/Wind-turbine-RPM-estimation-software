@@ -31,8 +31,7 @@ def main(feed, params):
                     motion_vectors = data[0] - data[1]
                     scaled_vectors = motion_vectors * feed.rpm_scaling_factor
                     rpm = feed.calculate_rpm_from_vectors(scaled_vectors)
-                    flow_image = feed.draw_optical_flow(
-                        image, data[1], data[0])
+                    flow_image = feed.draw_optical_flow(image, data[1], data[0])
 
                 # Set some defaults that we filter out if tracking is unsuccessful
                 else:
@@ -42,8 +41,7 @@ def main(feed, params):
                 # Find RPM and error rate
                 if rpm is not None:
                     rpms.append(rpm)
-                    error = utils.calculate_error_percentage(
-                        rpm, params["real_rpm"])
+                    error = utils.calculate_error_percentage(rpm, params["real_rpm"])
                     errors.append(error)
 
                 # This MUST be called to refresh frames.
@@ -56,8 +54,7 @@ def main(feed, params):
                 #  Logging is handled externally if the script is run from multirunner.py
                 if __name__ == "__main__":
                     if args.log:
-                        utils.write_output(
-                            params["id"], 0, rpms, params["real_rpm"])
+                        utils.write_output(params["id"], 0, rpms, params["real_rpm"])
                 else:
                     return rpms, errors
                 break
@@ -73,7 +70,7 @@ def main(feed, params):
         # Filtering setup
         # deque for ease of use, we only need the last 2 ticks to measure tick time
         frame_ticks = deque(maxlen=2)
-        all_fb_averages = deque(maxlen=60)
+        all_fb_averages = deque(maxlen=int(params["fps"]))
         out = deque(maxlen=5)
         deviation, mode = 0, 0
         graph_mode = False
@@ -136,30 +133,26 @@ def main(feed, params):
                     if smoothed:
                         print(
                             feed.frame_cnt,
-                            (0 if out == deque(maxlen=5)
-                             else np.mean(np.asarray(out))),
+                            (0 if out == deque(maxlen=5) else np.mean(np.asarray(out))),
                         )
                     else:
                         print(
-                            f"{feed.frame_cnt}, {
-                                (0 if out == deque(maxlen=5) else out[-1])
-                            }"
+                            f"{feed.frame_cnt}, {(0 if out == deque(maxlen=5) else out[-1])}"
                         )
                 else:
                     feed.print_useful_stats(
                         out=out,
                         frame_ticks=frame_ticks,
                         detection_enable_toggle=feed.detection_enable_toggle,
-                        threshold=float(
-                            (mode + feed.threshold_multiplier * deviation)),
+                        threshold=float((mode + feed.threshold_multiplier * deviation)),
                         mode=float(mode),
                     )
                 # cv.imwrite(f"images/frame_{feed.frame_cnt}.png", frame)
                 # This MUST be called to refresh frames.
-                cv.imshow("Image feed", frame)
-                k = cv.waitKey(30) & 0xFF
-                if k == 27:
-                    break
+                # cv.imshow("Image feed", frame)
+                # k = cv.waitKey(30) & 0xFF
+                # if k == 27:
+                #    break
                 # Update the frame
                 frame = feed.get_frame()
             else:

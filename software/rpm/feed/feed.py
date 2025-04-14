@@ -14,7 +14,7 @@ class Feed:
         self.target = target
         self.fps = fps
         self.video = cv.VideoCapture(self.target)
-        self.video.set(cv.CAP_PROP_FPS, self.fps)
+        # self.video.set(cv.CAP_PROP_FPS, self.fps)
 
         if self.crop_points is not None:
             self.h = self.crop_points[0][1] - self.crop_points[0][0]

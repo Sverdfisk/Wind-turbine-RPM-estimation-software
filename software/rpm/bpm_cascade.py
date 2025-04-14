@@ -99,8 +99,7 @@ class Draw:
         yrange, xrange = draw_region
         subregion = base_frame[yrange, xrange]
         white_rect = np.ones(subregion.shape, dtype=np.uint8) * 255
-        res = cv.addWeighted(subregion, base_weight,
-                             white_rect, draw_weight, 1.0)
+        res = cv.addWeighted(subregion, base_weight, white_rect, draw_weight, 1.0)
 
         base_frame[yrange, xrange] = res
         return base_frame
@@ -265,16 +264,13 @@ class BpmCascade(feed.RpmFromFeed):
     ) -> None:
         # Frame counter
         print(
-            f"{utils.bcolors.HEADER}Frame: {
-                self.frame_cnt}{utils.bcolors.ENDC} - ",
+            f"{utils.bcolors.HEADER}Frame: {self.frame_cnt}{utils.bcolors.ENDC} - ",
             end="",
         )
 
         # Delta, thresholds and mode
         print(
-            f"Delta / Threshold / mode: {utils.bcolors.OKCYAN}{utils.bcolors.UNDERLINE}{
-                round(self.all_fb_delta_average, 3)
-            } / {round(threshold, 2)} / {round(mode, 1)}{utils.bcolors.ENDC} - ",
+            f"Delta / Threshold / mode: {utils.bcolors.OKCYAN}{utils.bcolors.UNDERLINE}{round(self.all_fb_delta_average, 3)} / {round(threshold, 2)} / {round(mode, 1)}{utils.bcolors.ENDC} - ",
             end="",
         )
 
@@ -286,35 +282,19 @@ class BpmCascade(feed.RpmFromFeed):
 
         # RPM data
         print(
-            f"RPM: {utils.bcolors.FAIL}{utils.bcolors.BOLD}{
-                0 if out == deque(maxlen=5) else round(np.mean(out), 3)
-            }{utils.bcolors.ENDC} - ",
+            f"RPM: {utils.bcolors.FAIL}{utils.bcolors.BOLD}{0 if out == deque(maxlen=5) else round(np.mean(out), 3)}{utils.bcolors.ENDC} - ",
             end="",
         )
 
         # Time since last detection
         print(
-            f"Last detection {
-                self.frame_cnt
-                - (0 if frame_ticks == deque(maxlen=2) else frame_ticks[-1])
-            } frames ago - ",
+            f"Last detection {self.frame_cnt - (0 if frame_ticks == deque(maxlen=2) else frame_ticks[-1])} frames ago - ",
             end="",
         )
 
         # Error rate
         print(
-            f"Error: {utils.bcolors.FAIL}{utils.bcolors.BOLD}{
-                round(
-                    utils.calculate_error_percentage(
-                        float(
-                            (0 if out == deque(maxlen=5)
-                             else round(np.mean(out), 3))
-                        ),
-                        self.real_rpm,
-                    ),
-                    2,
-                )
-            }%{utils.bcolors.ENDC}"
+            f"Error: {utils.bcolors.FAIL}{utils.bcolors.BOLD}{round(utils.calculate_error_percentage(float((0 if out == deque(maxlen=5) else round(np.mean(out), 3))), self.real_rpm), 2)}%{utils.bcolors.ENDC}"
         )
 
     def _get_quadrant_subsection_slice(self) -> tuple[slice, slice]:
@@ -345,8 +325,7 @@ class BpmCascade(feed.RpmFromFeed):
 
     def intensity_is_over_threshold(self, deviation: float, mode: float):
         if (
-            self.all_fb_delta_average > (
-                mode + self.threshold_multiplier * deviation)
+            self.all_fb_delta_average > (mode + self.threshold_multiplier * deviation)
             and self.detection_enable_toggle
         ):
             return True
@@ -473,8 +452,7 @@ class BpmCascade(feed.RpmFromFeed):
             + (box_size * self.quadrant_axis_map[0])
         )
 
-        box_range = slice(self.start_from_box - 1,
-                          num_boxes - self.trim_last_n_boxes)
+        box_range = slice(self.start_from_box - 1, num_boxes - self.trim_last_n_boxes)
 
         # Cascade boxes
         for i in range(box_range.start, box_range.stop):
