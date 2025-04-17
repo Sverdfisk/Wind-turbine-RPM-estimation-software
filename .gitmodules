@@ -1,0 +1,3 @@
+[submodule "software/imx385lqr-c-driver"]
+	path = software/imx385lqr-c-driver
+	url = https://github.com/PollenSense/imx385lqr-c-driver.git
