@@ -44,9 +44,7 @@ class CustomDialog(QDialog):
                 "Exit"
             )
             message = QLabel(
-                f"Config generation was successful and the file written to {
-                    self.parent.file_loc
-                }."
+                f"Config generation was successful and the file written to {self.parent.file_loc}."
             )
             message2 = QLabel(
                 f'Press "Run now" to run your config file, or "Exit" to quit the config generator.'

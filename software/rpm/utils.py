@@ -72,11 +72,11 @@ class bcolors:
 
 
 def write_output(
-    turbine_id: int, run_number: int, rpms: list[float], real_rpm: int | None = None
+    turbine_id: int, frame_number: int, rpm: list[float], real_rpm: int | None = None
 ):
     with open(f"runs/run_turbine{str(turbine_id)}.csv", "a") as output_file:
         output_file.write(
-            f"{run_number}, {np.average(rpms)}, {calculate_error_percentage(float(np.average(rpms)), real_rpm)}\n"
+            f"{frame_number}, {rpm}, {calculate_error_percentage(float(np.average(rpm)), real_rpm)}\n"
         )
 
 

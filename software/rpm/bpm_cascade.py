@@ -27,7 +27,7 @@ class BoundingBox:
         self.region = region
         #  side length =/= size
         self.side_length = self.size * 2
-        self.draw = Draw(self)
+        self.draw = feed.Draw(self)
         self.fb = FrameBuffer(self, frame_buffer_size)
 
     def dilate_and_erode(
@@ -75,73 +75,6 @@ class BoundingBox:
         assert sizey == sizex  # Force square size
         center = ((xrange.start + sizex), (yrange.start + sizey))
         return (center, sizex)
-
-
-class Draw:
-    """
-    Wrapper class for drawing mehanisms and related utilities.
-
-    Args:
-        parent (class): The composition parent.
-
-    """
-
-    def __init__(self, parent):
-        self.parent = parent
-
-    def opaque_region(
-        self,
-        base_frame: np.ndarray,
-        draw_region: tuple[slice, slice],
-        base_weight: float,
-        draw_weight: float,
-    ) -> np.ndarray:
-        yrange, xrange = draw_region
-        subregion = base_frame[yrange, xrange]
-        white_rect = np.ones(subregion.shape, dtype=np.uint8) * 255
-        res = cv.addWeighted(subregion, base_weight, white_rect, draw_weight, 1.0)
-
-        base_frame[yrange, xrange] = res
-        return base_frame
-
-    def active_quadrant(
-        self, base_frame: np.ndarray, base_weight: float, draw_weight: float
-    ) -> np.ndarray:
-        marked_quadrant = self.opaque_region(
-            base_frame, self.parent.quadrant_subsection, base_weight, draw_weight
-        )
-        return marked_quadrant
-
-    def bounding_box(
-        self,
-        base_frame: np.ndarray,
-        box: BoundingBox,
-        base_weight: float,
-        draw_weight: float,
-    ) -> np.ndarray:
-        yrange = slice(box.center[1] - box.size, box.center[1] + box.size)
-        xrange = slice(box.center[0] - box.size, box.center[0] + box.size)
-        new_frame = self.opaque_region(
-            base_frame, (yrange, xrange), base_weight, draw_weight
-        )
-        return new_frame
-
-    def processing_results(
-        self, frame: np.ndarray, region: tuple[slice, slice], value: np.ndarray
-    ) -> np.ndarray:
-        frame[region] = value
-        return frame
-
-    def border_around_region(self, image: np.ndarray, thickness: int, color: list[int]):
-        h, w = image.shape[:2]
-        cv.rectangle(
-            image,
-            (0, 0),
-            (w - 1, h - 1),
-            color,
-            thickness=thickness,
-        )
-        return image
 
 
 class FrameBuffer:
@@ -205,7 +138,7 @@ class BpmCascade(feed.RpmFromFeed):
         self.hypotenuse_length = self._get_hypotenuse_length()
         self.quadrant_subsection = self._get_quadrant_subsection_slice()
         self.quadrant_axis_map = self._generate_axis_mapping()
-        self.draw = Draw(self)
+        self.draw = feed.Draw(self)
         self.detection_enable_toggle = True
         self.color_delta_update_frequency: int
         self.quadrant: int

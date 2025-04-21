@@ -62,3 +62,71 @@ class RpmFromFeed(Feed):
     def get_center_pixel(self) -> tuple:
         # We can just use the radius here to find the middle of the image
         return (self.radius_x, self.radius_y)
+
+
+class Draw:
+    """
+    Wrapper class for drawing mehanisms and related utilities.
+
+    Args:
+        parent (class): The composition parent.
+
+    """
+
+    def __init__(self, parent):
+        self.parent = parent
+
+    def opaque_region(
+        self,
+        base_frame: np.ndarray,
+        draw_region: tuple[slice, slice],
+        base_weight: float,
+        draw_weight: float,
+    ) -> np.ndarray:
+        yrange, xrange = draw_region
+        subregion = base_frame[yrange, xrange]
+        white_rect = np.ones(subregion.shape, dtype=np.uint8) * 255
+        res = cv.addWeighted(subregion, base_weight, white_rect, draw_weight, 1.0)
+
+        base_frame[yrange, xrange] = res
+        return base_frame
+
+    def active_quadrant(
+        self, base_frame: np.ndarray, base_weight: float, draw_weight: float
+    ) -> np.ndarray:
+        marked_quadrant = self.opaque_region(
+            base_frame, self.parent.quadrant_subsection, base_weight, draw_weight
+        )
+        return marked_quadrant
+
+    def bounding_box(
+        self,
+        base_frame: np.ndarray,
+        box_center: tuple[int, int],
+        box_size: int,
+        base_weight: float,
+        draw_weight: float,
+    ) -> np.ndarray:
+        yrange = slice(box_center[1] - box_size, box_center[1] + box_size)
+        xrange = slice(box_center[0] - box_size, box_center[0] + box_size)
+        new_frame = self.opaque_region(
+            base_frame, (yrange, xrange), base_weight, draw_weight
+        )
+        return new_frame
+
+    def processing_results(
+        self, frame: np.ndarray, region: tuple[slice, slice], value: np.ndarray
+    ) -> np.ndarray:
+        frame[region] = value
+        return frame
+
+    def border_around_region(self, image: np.ndarray, thickness: int, color: list[int]):
+        h, w = image.shape[:2]
+        cv.rectangle(
+            image,
+            (0, 0),
+            (w - 1, h - 1),
+            color,
+            thickness=thickness,
+        )
+        return image

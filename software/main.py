@@ -74,6 +74,7 @@ def main(feed, params):
         out = deque(maxlen=5)
         deviation, mode = 0, 0
         graph_mode = False
+        rpm = 0
 
         while True:
             if feed.isActive:
@@ -147,22 +148,20 @@ def main(feed, params):
                         threshold=float((mode + feed.threshold_multiplier * deviation)),
                         mode=float(mode),
                     )
-                # cv.imwrite(f"images/frame_{feed.frame_cnt}.png", frame)
-                # This MUST be called to refresh frames.
-                # cv.imshow("Image feed", frame)
-                # k = cv.waitKey(30) & 0xFF
-                # if k == 27:
-                #    break
+
+                cv.imshow("Image feed", frame)
+                k = cv.waitKey(1) & 0xFF
+                if k == 27:
+                    break
+                if args.log:
+                    utils.write_output(1, feed.frame_cnt, rpm, feed.real_rpm)
                 # Update the frame
                 frame = feed.get_frame()
             else:
                 if __name__ == "__main__":
-                    avg_rpm = list(set(out))
-                    if args.log:
-                        utils.write_output(params["id"], 0, avg_rpm, None)
-
+                    rpms = list(set(out))
                     return (
-                        avg_rpm,
+                        rpms,
                         None,
                     )  # Fix this!!!! Should return actual error percentage
                 break
