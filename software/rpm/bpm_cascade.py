@@ -100,18 +100,14 @@ class FrameBuffer:
         if len(self.entries) > 0:
             prev_frame_intensity = self.entries[-1]["intensity"]
             intensity_delta = intensity - prev_frame_intensity
-            prev_frame_intensity_delta = self.entries[-1]["intensity_delta"]
-            intensity_acceleration = intensity_delta - prev_frame_intensity_delta
         else:
             #  Setting these to 0 reduce startup spikes
-            intensity_acceleration = 0
             intensity_delta = 0
 
         entry = {
             "subregion": region,
             "intensity": intensity,
             "intensity_delta": intensity_delta,
-            "intensity_acceleration": intensity_acceleration,
         }
         self.entries.append(entry)
 
@@ -210,7 +206,7 @@ class BpmCascade(feed.RpmFromFeed):
 
         # Delta, thresholds and mode
         print(
-            f"Delta / Acceleration / Threshold / mode: {utils.bcolors.OKCYAN}{utils.bcolors.UNDERLINE}{round(self.all_fb_delta_average, 2)} / {round(intensity_accel, 2)} / {round(threshold, 2)} / {round(mode, 1)}{utils.bcolors.ENDC} - ",
+            f"Delta / Threshold / mode: {utils.bcolors.OKCYAN}{utils.bcolors.UNDERLINE}{round(self.all_fb_delta_average, 2)} / {round(threshold, 2)} / {round(mode, 1)}{utils.bcolors.ENDC} - ",
             end="",
         )
 
