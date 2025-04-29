@@ -1,4 +1,6 @@
 import sys
+from rpm import bpm_cascade
+from rpm.feed import feed
 import subprocess
 import json
 from PyQt6.QtWidgets import (
@@ -90,7 +92,7 @@ class PreviewWindow(QWidget):
         # Add label to your panel’s layout
         self.layout().addWidget(self.image_preview, stretch=1)
 
-    def update_image_preview(self, xrange=None, yrange=None):
+    def update_image_preview(self, xrange=None, yrange=None, draw_boxes=False):
         self.xrange = xrange
         self.yrange = yrange
         self.video = cv2.VideoCapture(self.parent.video_path)
@@ -98,6 +100,7 @@ class PreviewWindow(QWidget):
 
         if ret:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
             if self.xrange is not None and self.yrange is not None:
                 frame = frame[self.yrange, self.xrange]
             frame_qimage = convert_cvimg_to_qimg(frame)
@@ -349,6 +352,9 @@ class MainWindow(QMainWindow):
             "Trim last N boxes", placeholder_text="0", objname="input_field"
         )
 
+        self.box_preview = QPushButton(parent=self, text="Preview")
+        self.box_preview.setObjectName("previewbutton")
+
         box_params_layout.addWidget(quadrant_label, 0, 0)
         box_params_layout.addWidget(quadrant_fld, 0, 1)
         box_params_layout.addWidget(num_boxes_label, 0, 2)
@@ -359,8 +365,25 @@ class MainWindow(QMainWindow):
         box_params_layout.addWidget(start_from_box_fld, 1, 1)
         box_params_layout.addWidget(trim_last_n_label, 1, 2)
         box_params_layout.addWidget(trim_last_n_fld, 1, 3)
+        box_params_layout.addWidget(self.box_preview, 1, 5)
 
+        self.box_preview.clicked.connect(self.preview_box_params)
+
+        print(self.box_params.findChildren(QLineEdit))
         self.bpm_mode_config_panel_layout.addWidget(self.box_params)
+
+    def preview_box_params(self):
+        param_fields = [
+            field.text() for field in self.box_params.findChildren(QLineEdit)
+        ]
+        self.box_cascade_params = {
+            "quadrant": param_fields[0],
+            "num_boxes": param_fields[1],
+            "box_size": param_fields[2],
+            "start_from_box": param_fields[3],
+            "trim_last_n": param_fields[4],
+        }
+        self.boxes = bpm_cascade.cascade_bounding_boxes
 
     def initln_detection_params(self):
         self.detection_params = QGroupBox("Detection parameters")

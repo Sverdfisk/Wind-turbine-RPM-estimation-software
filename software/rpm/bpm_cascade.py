@@ -19,7 +19,7 @@ class BoundingBox:
 
     """
 
-    def __init__(self, center, size, region, frame_buffer_size):
+    def __init__(self, center, size, region, frame_buffer_size, id):
         self.center = center
         self.size = size
 
@@ -29,6 +29,8 @@ class BoundingBox:
         self.side_length = self.size * 2
         self.draw = feed.Draw(self)
         self.fb = FrameBuffer(self, frame_buffer_size)
+        self.id = id
+        self.rank = 0
 
     def dilate_and_erode(
         self,
@@ -39,22 +41,22 @@ class BoundingBox:
     ) -> np.ndarray:
         subregion = frame[self.region]
         kernel = cv.getStructuringElement(cv.MORPH_RECT, kernel_size)
-        dilated = cv.dilate(subregion, kernel, dil_it)
-        processed_subregion = cv.erode(dilated, kernel, er_it)
+        dilated = cv.dilate(subregion, kernel, iterations=dil_it)
+        processed_subregion = cv.erode(dilated, kernel, iterations=er_it)
         return processed_subregion
 
     def area(self):
         return self.side_length * self.side_length
 
     @classmethod
-    def from_center_and_size(cls, center, size, frame_buffer_size):
+    def from_center_and_size(cls, center, size, frame_buffer_size, id):
         region = cls.region_from_center_and_size(center, size)
-        return cls(center, size, region, frame_buffer_size)
+        return cls(center, size, region, frame_buffer_size, id)
 
     @classmethod
-    def from_region(cls, region, frame_buffer_size):
+    def from_region(cls, region, frame_buffer_size, id):
         center, size = cls.center_and_size_from_region(region)
-        return cls(center, size, region, frame_buffer_size)
+        return cls(center, size, region, frame_buffer_size, id)
 
     @staticmethod
     def region_from_center_and_size(
@@ -97,15 +99,19 @@ class FrameBuffer:
 
         if len(self.entries) > 0:
             prev_frame_intensity = self.entries[-1]["intensity"]
+            intensity_delta = intensity - prev_frame_intensity
+            prev_frame_intensity_delta = self.entries[-1]["intensity_delta"]
+            intensity_acceleration = intensity_delta - prev_frame_intensity_delta
         else:
-            #  Just to keep the delta at 0 to avoid startup spikes
-            prev_frame_intensity = intensity
-        intensity_delta = intensity - prev_frame_intensity
+            #  Setting these to 0 reduce startup spikes
+            intensity_acceleration = 0
+            intensity_delta = 0
 
         entry = {
             "subregion": region,
             "intensity": intensity,
             "intensity_delta": intensity_delta,
+            "intensity_acceleration": intensity_acceleration,
         }
         self.entries.append(entry)
 
@@ -183,7 +189,7 @@ class BpmCascade(feed.RpmFromFeed):
 
     def update_global_fb_average(self):
         sum = []
-        for box in self.bounds:
+        for box in self.bounds.values():
             sum.append(box.fb.average_delta)
         self.all_fb_delta_average = np.mean(sum)
 
@@ -194,6 +200,7 @@ class BpmCascade(feed.RpmFromFeed):
         detection_enable_toggle: bool = True,
         threshold: float = 0,
         mode: float = 0,
+        intensity_accel: float = 0,
     ) -> None:
         # Frame counter
         print(
@@ -203,7 +210,7 @@ class BpmCascade(feed.RpmFromFeed):
 
         # Delta, thresholds and mode
         print(
-            f"Delta / Threshold / mode: {utils.bcolors.OKCYAN}{utils.bcolors.UNDERLINE}{round(self.all_fb_delta_average, 3)} / {round(threshold, 2)} / {round(mode, 1)}{utils.bcolors.ENDC} - ",
+            f"Delta / Acceleration / Threshold / mode: {utils.bcolors.OKCYAN}{utils.bcolors.UNDERLINE}{round(self.all_fb_delta_average, 2)} / {round(intensity_accel, 2)} / {round(threshold, 2)} / {round(mode, 1)}{utils.bcolors.ENDC} - ",
             end="",
         )
 
@@ -256,7 +263,9 @@ class BpmCascade(feed.RpmFromFeed):
         if mode - threshold < intensity_delta < mode + threshold:
             self.detection_enable_toggle = True
 
-    def intensity_is_over_threshold(self, deviation: float, mode: float):
+    def blade_detection_in_box_regions(self, deviation: float, mode: float):
+        self.rank_and_weight_bounding_boxes()
+
         if (
             self.all_fb_delta_average > (mode + self.threshold_multiplier * deviation)
             and self.detection_enable_toggle
@@ -264,6 +273,25 @@ class BpmCascade(feed.RpmFromFeed):
             return True
         else:
             return False
+
+    def rank_and_weight_bounding_boxes(self):
+        # Get all detection strengths
+        buffer_values = {}
+        for box in self.bounds.values():
+            buffer_values[f"{box.id}"] = box.fb.average_delta
+
+        # Sort boxes based on detection strength
+        self.sorted_ids_by_strength = sorted(
+            buffer_values, key=buffer_values.__getitem__, reverse=True
+        )
+
+        # Apply ranking based on detection strength
+        weights = np.linspace(1, 0, len(self.sorted_ids_by_strength))
+        for rank, id in enumerate(self.sorted_ids_by_strength):
+            self.bounds[id].rank = rank
+            self.bounds[id].fb.average_delta = (
+                self.bounds[id].fb.average_delta * weights[rank]
+            )  # Rank is also just an index
 
     def boxes_in_radius(self, box_size: int) -> int:
         # In the horizontal or vertical stacking cases,
@@ -359,8 +387,8 @@ class BpmCascade(feed.RpmFromFeed):
         self,
         num_boxes: int,
         box_size,
-    ) -> list[BoundingBox]:
-        bounds = []
+    ) -> dict[str, BoundingBox]:
+        bounds = {}
 
         #  TODO: figure out a smarter way to do this axis stuff
         delta_y = (
@@ -393,10 +421,8 @@ class BpmCascade(feed.RpmFromFeed):
             box_y = round(offset_y + delta_y * i)
             box_center = (box_x, box_y)
 
-            bounds.append(
-                BoundingBox.from_center_and_size(
-                    box_center, box_size, self.frame_buffer_size
-                )
+            bounds[f"{i}"] = BoundingBox.from_center_and_size(
+                box_center, box_size, self.frame_buffer_size, i
             )
         self.bounds = bounds
         return bounds

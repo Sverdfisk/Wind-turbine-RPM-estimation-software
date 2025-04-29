@@ -1,3 +1,4 @@
+from sys import intern
 import cv2 as cv
 import numpy as np
 from collections import deque
@@ -44,7 +45,6 @@ def main(feed, params):
                     error = utils.calculate_error_percentage(rpm, params["real_rpm"])
                     errors.append(error)
 
-                # This MUST be called to refresh frames.
                 cv.imshow("Image feed", flow_image)
                 k = cv.waitKey(30) & 0xFF
                 if k == 27:
@@ -80,7 +80,7 @@ def main(feed, params):
             if feed.isActive:
                 # To start, we set up the bounding boxes for the algorithm
                 # Each box gets its own frame buffer, organized by the box index
-                for bounding_box in bounds:
+                for bounding_box in bounds.values():
                     # Do processing
                     processed_region = bounding_box.dilate_and_erode(
                         frame, *kernel_er_dil_params
@@ -91,6 +91,7 @@ def main(feed, params):
 
                     #  Draw a  border around the bounding box processed region
                     #  call this after inserting the region into the frame buffer!!!!
+                    #  if not we do computations on the region WITH borders drawn on
                     bounding_box.draw.border_around_region(
                         processed_region, 1, [0, 255, 0]
                     )
@@ -101,6 +102,7 @@ def main(feed, params):
 
                     bounding_box.fb.update_color_delta_average()
 
+                # Update decection values
                 if feed.frame_cnt % feed.color_delta_update_frequency == 0:
                     feed.update_global_fb_average()
                     all_fb_averages.append(feed.all_fb_delta_average)
@@ -109,7 +111,8 @@ def main(feed, params):
                     mode = np.mean(mode)
                     deviation = np.std(all_fb_averages)
 
-                if feed.intensity_is_over_threshold(float(deviation), float(mode)):
+                # Check if the new values indicate a detection
+                if feed.blade_detection_in_box_regions(float(deviation), float(mode)):
                     # Note the frame we detect the blade
                     frame_ticks.append(feed.frame_cnt)
 
@@ -118,7 +121,23 @@ def main(feed, params):
                         rpm = feed.calculate_rpm(
                             frame_ticks[1] - frame_ticks[0], feed.fps
                         )
-                        out.append(rpm)
+
+                        # Ignore detections if they are unreasonable.
+                        # The ticks are stored but the output is not updated
+                        if out:
+                            last_output = out[-1]
+
+                            # Turbines wont spin faster than 30RPM. they will not "brake"
+                            # faster than a loss of 5RPM per third of a rotation.
+                            # Detections saying otherwise would be wrong.
+                            if rpm < 30 or (
+                                (last_output - 5) < rpm < (last_output + 5)
+                            ):
+                                out.append(rpm)
+                            else:
+                                pass
+                        else:
+                            out.append((rpm if rpm < 30 else 0))
 
                     # Stop additional triggers until we've stabilized
                     feed.detection_enable_toggle = False
@@ -128,25 +147,27 @@ def main(feed, params):
                 )
 
                 # Print stats
-
                 if graph_mode:
                     smoothed = False
+                    # TEMPORARY!!!!!!
                     if smoothed:
                         print(
                             feed.frame_cnt,
-                            (0 if out == deque(maxlen=5) else np.mean(np.asarray(out))),
+                            feed.all_fb_delta_average,
                         )
                     else:
                         print(
-                            f"{feed.frame_cnt}, {(0 if out == deque(maxlen=5) else out[-1])}"
+                            f"{feed.frame_cnt}, {0 if not out else out[-1]}, {utils.calculate_error_percentage((0 if not out else out[-1]), feed.real_rpm)}"
                         )
                 else:
+                    # TEMPORARY!!!!!!
                     feed.print_useful_stats(
                         out=out,
                         frame_ticks=frame_ticks,
                         detection_enable_toggle=feed.detection_enable_toggle,
                         threshold=float((mode + feed.threshold_multiplier * deviation)),
                         mode=float(mode),
+                        intensity_accel=float(0),
                     )
 
                 cv.imshow("Image feed", frame)
