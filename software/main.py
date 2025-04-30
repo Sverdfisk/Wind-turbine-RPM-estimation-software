@@ -1,4 +1,5 @@
-from sys import intern
+import os
+from datetime import datetime
 import cv2 as cv
 import numpy as np
 from collections import deque
@@ -12,7 +13,7 @@ import argparse
 # Look at rpm/opticalflow.py and rpm/calculate_rpm.py for details
 
 
-def main(feed, params):
+def main(feed, params, start_time):
     # TODO: refactor the entirety of opticalflow.py
     #  Flow method setup
     rpms = []
@@ -51,12 +52,8 @@ def main(feed, params):
                     break
 
             else:
-                #  Logging is handled externally if the script is run from multirunner.py
-                if __name__ == "__main__":
-                    if args.log:
-                        utils.write_output(params["id"], 0, rpms, params["real_rpm"])
-                else:
-                    return rpms, errors
+                if args.deploy:
+                    utils.write_output(params["id"], 0, rpms, params["real_rpm"])
                 break
 
     elif isinstance(feed, bpm_cascade.BpmCascade):
@@ -70,18 +67,18 @@ def main(feed, params):
         # Filtering setup
         # deque for ease of use, we only need the last 2 ticks to measure tick time
         frame_ticks = deque(maxlen=2)
-        all_fb_averages = deque(maxlen=int(params["fps"]))
-        out = deque(maxlen=5)
+        fb_average_long_buffer = deque(maxlen=int(params["fps"]))
+        rpm_buffer = deque(maxlen=10)
+        tick_time = start_time
         deviation, mode = 0, 0
-        graph_mode = False
-        rpm = 0
+        prev_rpm, rpm = 0, 0
 
         while True:
             if feed.isActive:
-                # To start, we set up the bounding boxes for the algorithm
-                # Each box gets its own frame buffer, organized by the box index
+                # To start, we loop through each bounding box and look at its contents
+                # Each box gets its own frame buffer
                 for bounding_box in bounds.values():
-                    # Do processing
+                    # Process the region within the box
                     processed_region = bounding_box.dilate_and_erode(
                         frame, *kernel_er_dil_params
                     )
@@ -105,11 +102,12 @@ def main(feed, params):
                 # Update decection values
                 if feed.frame_cnt % feed.color_delta_update_frequency == 0:
                     feed.update_global_fb_average()
-                    all_fb_averages.append(feed.all_fb_delta_average)
-                    mode = utils.find_top_n_modes(all_fb_averages, 1)
+                    fb_average_long_buffer.append(feed.all_fb_delta_average)
+                    mode = utils.find_top_n_modes(fb_average_long_buffer, 1)
+
                     # Only useful if there is more than 1 mode
                     mode = np.mean(mode)
-                    deviation = np.std(all_fb_averages)
+                    deviation = np.std(fb_average_long_buffer)
 
                 # Check if the new values indicate a detection
                 if feed.blade_detection_in_box_regions(float(deviation), float(mode)):
@@ -124,20 +122,20 @@ def main(feed, params):
 
                         # Ignore detections if they are unreasonable.
                         # The ticks are stored but the output is not updated
-                        if out:
-                            last_output = out[-1]
+                        if rpm_buffer:
+                            last_output = rpm_buffer[-1]
 
                             # Turbines wont spin faster than 30RPM. they will not "brake"
-                            # faster than a loss of 5RPM per third of a rotation.
-                            # Detections saying otherwise would be wrong.
+                            # faster than a loss of 3 RPM per third of a rotation.
+                            # Detections saying otherwise are assumed false.
                             if rpm < 30 or (
-                                (last_output - 5) < rpm < (last_output + 5)
+                                (last_output - 3) < rpm < (last_output + 3)
                             ):
-                                out.append(rpm)
-                            else:
-                                pass
+                                rpm_buffer.append(rpm)
+
+                        # The first detection we append anyway
                         else:
-                            out.append((rpm if rpm < 30 else 0))
+                            rpm_buffer.append((rpm if rpm < 30 else 0))
 
                     # Stop additional triggers until we've stabilized
                     feed.detection_enable_toggle = False
@@ -146,45 +144,37 @@ def main(feed, params):
                     feed.all_fb_delta_average, deviation, mode
                 )
 
-                # Print stats
-                if graph_mode:
-                    smoothed = False
-                    # TEMPORARY!!!!!!
-                    if smoothed:
-                        print(
-                            feed.frame_cnt,
-                            feed.all_fb_delta_average,
-                        )
-                    else:
-                        print(
-                            f"{feed.frame_cnt}, {0 if not out else out[-1]}, {utils.calculate_error_percentage((0 if not out else out[-1]), feed.real_rpm)}"
+                # Write, print and other final steps
+                if args.deploy:
+                    if feed.frame_cnt % 1000 == 0:
+                        print("RPM calculation is running...")
+                    # Only append new values
+                    if rpm != prev_rpm:
+                        time_delta = datetime.now() - tick_time
+                        tick_time = datetime.now()
+                        output_file.write(
+                            f"{feed.frame_cnt},{tick_time},{np.mean(rpm_buffer)}\n"
                         )
                 else:
-                    # TEMPORARY!!!!!!
+                    smoothed_rpm = [round(np.mean(rpm_buffer), 3)]
                     feed.print_useful_stats(
-                        out=out,
+                        out=smoothed_rpm,
                         frame_ticks=frame_ticks,
                         detection_enable_toggle=feed.detection_enable_toggle,
                         threshold=float((mode + feed.threshold_multiplier * deviation)),
                         mode=float(mode),
-                        intensity_accel=float(0),
                     )
 
-                cv.imshow("Image feed", frame)
-                k = cv.waitKey(1) & 0xFF
-                if k == 27:
-                    break
-                if args.log:
-                    utils.write_output(1, feed.frame_cnt, rpm, feed.real_rpm)
-                # Update the frame
+                    cv.imshow("Image feed", frame)
+                    k = cv.waitKey(1) & 0xFF
+                    if k == 27:
+                        break
+
+                # Update the frame and set rpm to prev_rpm
                 frame = feed.get_frame()
+                prev_rpm = rpm
+
             else:
-                if __name__ == "__main__":
-                    rpms = list(set(out))
-                    return (
-                        rpms,
-                        None,
-                    )  # Fix this!!!! Should return actual error percentage
                 break
 
 
@@ -193,14 +183,23 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("cfg")
     parser.add_argument(
-        "-l",
-        "--log",
+        "-d",
+        "--deploy",
         action="store_true",
         required=False,
-        help="Enables logging of runs",
+        help="",
     )
     args = parser.parse_args()
     params = utils.parse_json(args.cfg)
+
+    current_time = datetime.now()
+    current_time_string = current_time.strftime("%d/%m/%Y %H:%M:%S")
+
+    # Open this file globally in production mode to avoid excessive open/closes
+    if args.deploy:
+        os.makedirs(os.path.dirname("runs/out.csv"), exist_ok=True)
+        output_file = open("runs/out.csv", "w")
+        output_file.write(f"Logging started at {current_time_string}\n")
 
     # restart the feed for every run
     if params["mode"] == "bpm":
@@ -208,5 +207,11 @@ if __name__ == "__main__":
     else:
         feed = opticalflow.OpticalFlow(**params)
 
-    main(feed, params)
-    cv.destroyAllWindows()
+    main(feed, params, current_time)
+
+    if args.deploy:
+        end_time = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+
+        output_file.write(f"Logging ended at {end_time}\n")
+    else:
+        cv.destroyAllWindows()

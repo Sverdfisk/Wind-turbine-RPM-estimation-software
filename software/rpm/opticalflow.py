@@ -115,7 +115,7 @@ class OpticalFlow(feed.RpmFromFeed):
             pass
 
     def set_shi_tomasi_params(
-        self, maxCorners=100, qualityLevel=0.2, minDistance=9, blockSize=3
+        self, maxCorners=100, qualityLevel=0.04, minDistance=5, blockSize=7
     ) -> dict:
         params = dict(
             maxCorners=maxCorners,
@@ -127,8 +127,8 @@ class OpticalFlow(feed.RpmFromFeed):
 
     def set_lucas_kanade_params(
         self,
-        winSize=(15, 15),
-        maxLevel=2,
+        winSize=(24, 24),
+        maxLevel=3,
         criteria=(cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03),
     ) -> dict:
         params = dict(winSize=winSize, maxLevel=maxLevel, criteria=criteria)
@@ -234,8 +234,10 @@ class OpticalFlow(feed.RpmFromFeed):
 
         # Select good tracking points based on successful tracking
         if p1 is not None:
-            good_new = p1[(st == 1) & (abs(err) < self.pixel_threshold)]
-            good_old = p0[(st == 1) & (abs(err) < self.pixel_threshold)]
+            # good_new = p1[(st == 1) & (abs(err) < self.pixel_threshold)]
+            good_new = p1[(st == 1)]
+            # good_old = p0[(st == 1) & (abs(err) < self.pixel_threshold)]
+            good_old = p0[(st == 1)]
 
         # Set the new frame to be considered "old" for next call
         self.prev_frame = new_frame

@@ -196,7 +196,6 @@ class BpmCascade(feed.RpmFromFeed):
         detection_enable_toggle: bool = True,
         threshold: float = 0,
         mode: float = 0,
-        intensity_accel: float = 0,
     ) -> None:
         # Frame counter
         print(
@@ -218,19 +217,19 @@ class BpmCascade(feed.RpmFromFeed):
 
         # RPM data
         print(
-            f"RPM: {utils.bcolors.FAIL}{utils.bcolors.BOLD}{0 if out == deque(maxlen=5) else round(np.mean(out), 3)}{utils.bcolors.ENDC} - ",
+            f"RPM: {utils.bcolors.FAIL}{utils.bcolors.BOLD}{0 if not out else round(out[-1], 3)}{utils.bcolors.ENDC} - ",
             end="",
         )
 
         # Time since last detection
         print(
-            f"Last detection {self.frame_cnt - (0 if frame_ticks == deque(maxlen=2) else frame_ticks[-1])} frames ago - ",
+            f"Last detection {self.frame_cnt - (0 if not frame_ticks else frame_ticks[-1])} frames ago - ",
             end="",
         )
 
         # Error rate
         print(
-            f"Error: {utils.bcolors.FAIL}{utils.bcolors.BOLD}{round(utils.calculate_error_percentage(float((0 if out == deque(maxlen=5) else round(np.mean(out), 3))), self.real_rpm), 2)}%{utils.bcolors.ENDC}"
+            f"Error: {utils.bcolors.FAIL}{utils.bcolors.BOLD}{round(utils.calculate_error_percentage(float((0 if not out else out[-1])), self.real_rpm), 2)}%{utils.bcolors.ENDC}"
         )
 
     def _get_quadrant_subsection_slice(self) -> tuple[slice, slice]:

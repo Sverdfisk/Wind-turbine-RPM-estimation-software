@@ -369,7 +369,6 @@ class MainWindow(QMainWindow):
 
         self.box_preview.clicked.connect(self.preview_box_params)
 
-        print(self.box_params.findChildren(QLineEdit))
         self.bpm_mode_config_panel_layout.addWidget(self.box_params)
 
     def preview_box_params(self):
@@ -401,7 +400,9 @@ class MainWindow(QMainWindow):
             contrast_multiplier_container,
             contrast_multiplier_fld,
             contrast_multiplier_label,
-        ) = self.create_labeled_field("Contrast multiplier", "1", objname="input_field")
+        ) = self.create_labeled_field(
+            "Contrast multiplier override", "1", objname="input_field"
+        )
 
         (
             threshold_multiplier_container,
