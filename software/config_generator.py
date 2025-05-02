@@ -1,6 +1,5 @@
 import sys
 from rpm import bpm_cascade
-from rpm.feed import feed
 import subprocess
 import json
 from PyQt6.QtWidgets import (
@@ -21,6 +20,7 @@ from PyQt6.QtWidgets import (
     QStackedWidget,
     QDialog,
     QDialogButtonBox,
+    QCheckBox,
 )
 from PyQt6.QtGui import QIcon, QPixmap, QImage
 import cv2
@@ -127,7 +127,6 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.main_widget)
         self.main_layout = QHBoxLayout()
         self.main_layout.setContentsMargins(10, 10, 10, 10)
-        self.main_layout.setSpacing(10)
         # Feed preview
         self.preview = PreviewWindow(self)
 
@@ -169,6 +168,9 @@ class MainWindow(QMainWindow):
         #  BPM: Processing params
         self.initln_kernel_params()
 
+        #  BPM: additional customizations
+        self.initln_output_customization()
+
         #  BPM: Generate config button
         self.initln_generate_config()
 
@@ -189,6 +191,8 @@ class MainWindow(QMainWindow):
     def initln_path_select(self):
         self.path_select = QGroupBox("Path selection")
         self.path_select_layout = QFormLayout(self.path_select)
+        self.path_select_layout.setSpacing(10)
+        self.path_select_layout.setContentsMargins(0, 5, 0, 5)
 
         path_select_input, self.fld_path_select, _ = self.create_labeled_field(
             "Feed path", objname="input_field"
@@ -206,6 +210,8 @@ class MainWindow(QMainWindow):
     def initln_deadzone_shape(self):
         shapeselect = QGroupBox("Deadzone shape selection")
         shapeselect_layout = QHBoxLayout(shapeselect)
+        shapeselect_layout.setSpacing(10)
+        shapeselect_layout.setContentsMargins(0, 5, 0, 5)
 
         self.shape_group = QButtonGroup()
 
@@ -228,9 +234,40 @@ class MainWindow(QMainWindow):
 
         self.opticalflow_mode_config_panel_layout.addWidget(shapeselect)
 
+    def initln_output_customization(self):
+        self.output_params = QGroupBox("Output configuration")
+        self.output_params_layout = QGridLayout(self.output_params)
+        self.output_params_layout.setSpacing(10)
+        self.output_params_layout.setContentsMargins(0, 0, 0, 0)
+
+        rpm_buffer, rpm_buffer_fld, rpm_buffer_lbl = self.create_labeled_field(
+            "RPM smoothing", placeholder_text="15", objname="input_field"
+        )
+
+        self.timestamp_check = QCheckBox("Include timestamp of detection")
+        self.frame_tick_check = QCheckBox("Include frame number of detection")
+        self.color_value_check = QCheckBox("Include measured color values")
+        self.timestamp_check.setChecked(True)
+
+        for checkbox in [
+            self.timestamp_check,
+            self.frame_tick_check,
+            self.color_value_check,
+        ]:
+            checkbox.setMinimumSize(150, 30)
+
+        self.output_params_layout.addWidget(rpm_buffer_lbl, 1, 0)
+        self.output_params_layout.addWidget(rpm_buffer_fld, 1, 1)
+        self.output_params_layout.addWidget(self.timestamp_check, 0, 2)
+        self.output_params_layout.addWidget(self.frame_tick_check, 1, 2)
+        self.output_params_layout.addWidget(self.color_value_check, 2, 2)
+        self.bpm_mode_config_panel_layout.addWidget(self.output_params)
+
     def initln_calc_constants(self):
         self.calc_params = QGroupBox("Flow vector RPM calculation constants")
         self.calc_params_layout = QGridLayout(self.calc_params)
+        self.calc_params_layout.setSpacing(10)
+        self.calc_params_layout.setContentsMargins(0, 5, 0, 5)
 
         ga, ga_fld, ga_lbl = self.create_labeled_field(
             "Ground angle", placeholder_text="0.7", objname="input_field"
@@ -249,6 +286,8 @@ class MainWindow(QMainWindow):
     def initln_deadzone_params(self):
         self.deadzone_params = QGroupBox("Dead zone parameters")
         self.deadzone_layout = QGridLayout(self.deadzone_params)
+        self.deadzone_layout.setSpacing(10)
+        self.deadzone_layout.setContentsMargins(0, 5, 0, 5)
 
         dzx, dzx_fld, dzx_lbl = self.create_labeled_field(
             "Deadzone size x", placeholder_text="10", objname="input_field"
@@ -277,6 +316,8 @@ class MainWindow(QMainWindow):
     def initln_kernel_params(self):
         self.kernel_params = QGroupBox("Image region processing parameters")
         self.kernel_params_layout = QGridLayout(self.kernel_params)
+        self.kernel_params_layout.setSpacing(10)
+        self.kernel_params_layout.setContentsMargins(0, 5, 0, 5)
 
         kernel_size, kernel_size_fld, kernel_size_lbl = self.create_labeled_field(
             "Kernel size", placeholder_text="10", objname="input_field"
@@ -306,6 +347,8 @@ class MainWindow(QMainWindow):
         self.box_stack_container_layout = QHBoxLayout(self.box_stack_container)
         self.stack_group = QButtonGroup(self)
         self.stack_group.setExclusive(True)
+        self.box_stack_container_layout.setSpacing(10)
+        self.box_stack_container_layout.setContentsMargins(0, 5, 0, 5)
 
         stack_mode_hor = QPushButton(parent=self, text="Horizontal")
         stack_mode_hor.setObjectName("orientation_button")
@@ -333,6 +376,8 @@ class MainWindow(QMainWindow):
     def initln_box_params(self):
         self.box_params = QGroupBox("Detection zone configuration")
         box_params_layout = QGridLayout(self.box_params)
+        box_params_layout.setSpacing(10)
+        box_params_layout.setContentsMargins(0, 5, 0, 5)
 
         quadrant_container, quadrant_fld, quadrant_label = self.create_labeled_field(
             "Quadrant", placeholder_text="1", objname="input_field"
@@ -387,6 +432,8 @@ class MainWindow(QMainWindow):
     def initln_detection_params(self):
         self.detection_params = QGroupBox("Detection parameters")
         self.detection_params_layout = QGridLayout(self.detection_params)
+        self.detection_params_layout.setSpacing(10)
+        self.detection_params_layout.setContentsMargins(0, 5, 0, 5)
 
         fb_size_container, fb_fld, fb_lbl = self.create_labeled_field(
             "Frame buffer size", "5", objname="input_field"
@@ -426,6 +473,8 @@ class MainWindow(QMainWindow):
     def initln_feed_details(self):
         feed_details = QGroupBox("Basic feed parameters")
         feed_details_layout = QFormLayout(feed_details)
+        feed_details_layout.setSpacing(10)
+        feed_details_layout.setContentsMargins(0, 5, 0, 5)
 
         id_container, id_field, id_label = self.create_labeled_field(
             "Run ID", placeholder_text="1", objname="input_field"
@@ -451,6 +500,8 @@ class MainWindow(QMainWindow):
     def initln_generate_config(self):
         config_button = QWidget()
         config_button_layout = QHBoxLayout(config_button)
+        config_button_layout.setSpacing(10)
+        config_button_layout.setContentsMargins(0, 5, 0, 5)
         save_path_container, self.save_path_field, save_path_label = (
             self.create_labeled_field("Save as", placeholder_text="config.json")
         )
@@ -521,6 +572,12 @@ class MainWindow(QMainWindow):
         else:
             items_dict["mode"] = "opticalflow"
 
+        items_dict["log_timestamps"] = (
+            "True" if self.timestamp_check.isChecked() else "False"
+        )
+        items_dict["log_color_values"] = "True" if self.color_value_check else "False"
+        items_dict["log_frame_ticks"] = "True" if self.frame_tick_check else "False"
+
         return items_dict
 
     def json_sanitize(self, args: dict) -> dict:
@@ -537,7 +594,7 @@ class MainWindow(QMainWindow):
             int(args["Deadzone size x"]),
             int(args["Deadzone size y"]),
         ]
-        del args["Deadzone size x"]
+        del args["Deadzone size "]
         del args["Deadzone size y"]
 
         args["deadzone_shape"] = self.shape_group.checkedButton().text().lower()
@@ -558,13 +615,12 @@ class MainWindow(QMainWindow):
         for item in remapped_args:
             if item in items_to_skip:
                 continue
-            if (
-                item == "contrast_multiplier"
-                or item == "threshold_multiplier"
-                or item == "fps"
-                or item == "real_rpm"
-                or item == "ground_angle"
-            ):
+            if item in [
+                "contrast_multiplier",
+                "threshold_multiplierfps",
+                "real_rpm",
+                "ground_angle",
+            ]:
                 remapped_args[item] = float(remapped_args[item])
                 continue
             if item == "crop_points":
@@ -579,8 +635,12 @@ class MainWindow(QMainWindow):
                     int(float(remapped_args["erosion_dilation_kernel_size"])),
                 ]
                 continue
+            if item in ["log_timestamps", "log_color_values", "log_frame_ticks"]:
+                remapped_args[item] = True if remapped_args[item] == "True" else False
+                continue
 
-            # We should have escaped all the baddies by now, so this is practically an else clause
+            # We should have escaped all the baddies by now, so this is practically an else clause.
+            # Remember to "continue" on all other clauses else you'll intify everything
             remapped_args[item] = int(float(remapped_args[item]))
 
         return remapped_args
@@ -588,6 +648,8 @@ class MainWindow(QMainWindow):
     def initln_mode_select(self):
         bar = QGroupBox("RPM calculation mode")
         bar_layout = QHBoxLayout(bar)
+        bar_layout.setSpacing(10)
+        bar_layout.setContentsMargins(0, 5, 0, 5)
 
         self.mode_group = QButtonGroup()
 
@@ -665,6 +727,8 @@ class MainWindow(QMainWindow):
     def initln_crop_points(self):
         self.coord_group = QGroupBox("Crop point selection")
         self.coord_layout = QGridLayout(self.coord_group)
+        self.coord_layout.setSpacing(10)
+        self.coord_layout.setContentsMargins(5, 5, 5, 5)
 
         from_x, self.fld_from_x, _ = self.create_labeled_field(
             "From x", placeholder_text="0", objname="input_field"
@@ -904,6 +968,33 @@ class MainWindow(QMainWindow):
             color: #333333;
             border: 1px solid #ddddcc;
             padding: 3px;
+        }
+        QCheckBox {
+            spacing: 8px;
+            background-color: #f0f0f0;
+            padding: 4px;
+        }
+
+        QCheckBox::indicator {
+            width: 16px;
+            height: 16px;
+        }
+
+        QCheckBox::indicator:unchecked {
+            border: 1px solid #d0d0d0;
+            background-color: white;
+            border-radius: 3px;
+        }
+
+        QCheckBox::indicator:checked {
+            border: 1px solid #0078d7;
+            background-color: #0078d7;
+            border-radius: 3px;
+            image: url(assets/checkmark.png); /* You'll need to provide this image or use a different approach */
+        }
+
+        QCheckBox:hover {
+            background-color: #e8e8e8;
         }
         """)
 

@@ -59,6 +59,48 @@ def parse_json(file_path: str) -> dict:
         return params
 
 
+def dynamic_log_string(
+    rpm_monitor,
+    tick_timestamp,
+    colorvals,
+    rpm_buffer: deque | list,
+):
+    frame_tick_printstr = (
+        str(rpm_monitor.frame_cnt) if rpm_monitor.log_frame_ticks else None
+    )
+    tick_timestamp_printstr = (
+        str(tick_timestamp) if rpm_monitor.log_timestamps else None
+    )
+
+    # Sorry
+    color_printstr = (
+        "".join(
+            (str(color) + ("" if color == colorvals[-1] else "/"))
+            for color in colorvals
+        )
+        if rpm_monitor.log_color_values
+        else None
+    )
+
+    # This one is not negotiable and the thought of making this removable is silly
+    rpm_printstr = str(np.mean(rpm_buffer))
+
+    print_items = [
+        frame_tick_printstr,
+        tick_timestamp_printstr,
+        color_printstr,
+    ]
+
+    total_out_string = ""
+    for printstr in print_items:
+        if printstr is not None:
+            total_out_string += printstr + ","
+
+    # The final addition here is a bit weird so we do that one separately
+    total_out_string += rpm_printstr + "\n"
+    return total_out_string
+
+
 class bcolors:
     HEADER = "\033[95m"
     OKBLUE = "\033[94m"

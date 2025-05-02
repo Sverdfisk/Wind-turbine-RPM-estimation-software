@@ -68,7 +68,7 @@ def main(feed, params, start_time):
         # deque for ease of use, we only need the last 2 ticks to measure tick time
         frame_ticks = deque(maxlen=2)
         fb_average_long_buffer = deque(maxlen=int(params["fps"]))
-        rpm_buffer = deque(maxlen=10)
+        rpm_buffer = deque(maxlen=params["rpm_buffer_length"])
         tick_time = start_time
         deviation, mode = 0, 0
         prev_rpm, rpm = 0, 0
@@ -89,13 +89,14 @@ def main(feed, params, start_time):
                     #  Draw a  border around the bounding box processed region
                     #  call this after inserting the region into the frame buffer!!!!
                     #  if not we do computations on the region WITH borders drawn on
-                    bounding_box.draw.border_around_region(
-                        processed_region, 1, [0, 255, 0]
-                    )
-                    # Draw processing
-                    frame = bounding_box.draw.processing_results(
-                        frame, bounding_box.region, processed_region
-                    )
+                    if not args.deploy:
+                        bounding_box.draw.border_around_region(
+                            processed_region, 1, [0, 255, 0]
+                        )
+                        # Draw processing
+                        frame = bounding_box.draw.processing_results(
+                            frame, bounding_box.region, processed_region
+                        )
 
                     bounding_box.fb.update_color_delta_average()
 
@@ -150,10 +151,18 @@ def main(feed, params, start_time):
                         print("RPM calculation is running...")
                     # Only append new values
                     if rpm != prev_rpm:
-                        time_delta = datetime.now() - tick_time
-                        tick_time = datetime.now()
+                        tick_timestamp = datetime.now()
                         output_file.write(
-                            f"{feed.frame_cnt},{tick_time},{np.mean(rpm_buffer)}\n"
+                            utils.dynamic_log_string(
+                                feed,
+                                tick_timestamp,
+                                (
+                                    feed.all_fb_delta_average,
+                                    mode,
+                                    (mode + feed.threshold_multiplier * deviation),
+                                ),
+                                rpm_buffer,
+                            )
                         )
                 else:
                     smoothed_rpm = [round(np.mean(rpm_buffer), 3)]
@@ -161,8 +170,8 @@ def main(feed, params, start_time):
                         out=smoothed_rpm,
                         frame_ticks=frame_ticks,
                         detection_enable_toggle=feed.detection_enable_toggle,
-                        threshold=float((mode + feed.threshold_multiplier * deviation)),
-                        mode=float(mode),
+                        threshold=(mode + feed.threshold_multiplier * deviation),
+                        mode=mode,
                     )
 
                     cv.imshow("Image feed", frame)
@@ -211,7 +220,7 @@ if __name__ == "__main__":
 
     if args.deploy:
         end_time = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-
         output_file.write(f"Logging ended at {end_time}\n")
+
     else:
         cv.destroyAllWindows()
