@@ -69,7 +69,6 @@ def main(feed, params, start_time):
         frame_ticks = deque(maxlen=2)
         fb_average_long_buffer = deque(maxlen=int(params["fps"]))
         rpm_buffer = deque(maxlen=params["rpm_buffer_length"])
-        tick_time = start_time
         deviation, mode = 0, 0
         prev_rpm, rpm = 0, 0
 
@@ -207,7 +206,7 @@ if __name__ == "__main__":
     # Open this file globally in production mode to avoid excessive open/closes
     if args.deploy:
         os.makedirs(os.path.dirname("runs/out.csv"), exist_ok=True)
-        output_file = open("runs/out.csv", "w")
+        output_file = open("runs/out.csv", "w", buffering=1)
         output_file.write(f"Logging started at {current_time_string}\n")
 
     # restart the feed for every run

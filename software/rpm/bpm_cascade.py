@@ -261,6 +261,8 @@ class BpmCascade(feed.RpmFromFeed):
     def blade_detection_in_box_regions(self, deviation: float, mode: float):
         self.rank_and_weight_bounding_boxes()
 
+        # It might seem weird to use the all_fb_delta_average here, but in this situation we
+        # have already factored in the weighting scheme. So this value already prioritizes boxes.
         if (
             self.all_fb_delta_average > (mode + self.threshold_multiplier * deviation)
             and self.detection_enable_toggle
