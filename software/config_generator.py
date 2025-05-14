@@ -480,7 +480,7 @@ class MainWindow(QMainWindow):
             "Run ID", placeholder_text="1", objname="input_field"
         )
         fps_container, fps_field, fps_label = self.create_labeled_field(
-            "Feed FPS", placeholder_text="0", objname="input_field"
+            "Feed FPS", placeholder_text="60", objname="input_field"
         )
         rpm_container, rpm_field, rpm_label = self.create_labeled_field(
             "Real RPM", placeholder_text="0", objname="input_field"
