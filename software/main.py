@@ -77,7 +77,6 @@ def main(feed, params, start_time):
             if feed.isActive:
                 # To start, we loop through each bounding box and look at its contents
                 # Each box gets its own frame buffer
-                print(feed.max_rpm)
                 for bounding_box in bounds.values():
                     # Process the region within the box
                     processed_region = bounding_box.dilate_and_erode(

@@ -655,6 +655,7 @@ class MainWindow(QMainWindow):
             "mode",
             "deadzone_size",
             "deadzone_shape",
+            "direct_drive",
         ]
         for item in remapped_args:
             if item in items_to_skip:
@@ -664,6 +665,7 @@ class MainWindow(QMainWindow):
                 "threshold_multiplierfps",
                 "real_rpm",
                 "ground_angle",
+                "fps",
             ]:
                 remapped_args[item] = float(remapped_args[item])
                 continue
