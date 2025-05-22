@@ -151,6 +151,8 @@ class BpmCascade(feed.RpmFromFeed):
         self.trim_last_n_boxes: int
         self.start_from_box: int
         self.threshold_multiplier: int
+        self.rpm_acceleration_bound: int
+        self.turbine_diameter: float
 
         if self.contrast_multiplier == 1:
             self.adjust_contrast = False
@@ -378,6 +380,32 @@ class BpmCascade(feed.RpmFromFeed):
                 result_boxes = initial_box_limit
 
         return (result_boxes, result_size)
+
+    def process_rpm_bounds(self):
+        # If this is the case then we have a custom diameter we need to calculate the bounds for
+        if self.turbine_diameter != 0:
+            self.max_rpm = self.calculate_max_rpm_limit(direct_drive=self.direct_drive)
+
+        else:
+            # TODO: make this dynamic
+            self.max_rpm = 30
+
+    def calculate_max_rpm_limit(self, direct_drive=True):
+        # Based on a fitting regression from data points, see thesis
+        if direct_drive:
+            return (59974.7617 / (self.turbine_diameter**2)) + 8.36949
+        else:
+            return (911.43187 / (self.turbine_diameter)) + 7.57917
+
+    def rpm_within_bounds(self, rpm, prev_rpm):
+        if rpm < self.max_rpm or (
+            (prev_rpm - self.rpm_acceleration_bound)
+            < rpm
+            < (prev_rpm + self.rpm_acceleration_bound)
+        ):
+            return True
+        else:
+            return False
 
     def cascade_bounding_boxes(
         self,

@@ -155,7 +155,7 @@ class MainWindow(QMainWindow):
         self.initln_path_select()
         self.initln_crop_points()
         self.initln_feed_details()
-
+        self.initln_turbine_type()
         #  Mode select
         self.initln_mode_select()
         self.update_mode_dependent_params_view()
@@ -187,6 +187,31 @@ class MainWindow(QMainWindow):
 
         self.preview.show()
         self.main_widget.setLayout(self.main_layout)
+
+    def initln_turbine_type(self):
+        self.turbine_type_container = QGroupBox("Wind turbine type")
+        self.turbine_type_container_layout = QHBoxLayout(self.turbine_type_container)
+        self.turbine_type_group = QButtonGroup(self)
+        self.turbine_type_group.setExclusive(True)
+        self.turbine_type_container_layout.setSpacing(10)
+        self.turbine_type_container_layout.setContentsMargins(0, 5, 0, 5)
+
+        turbine_type_direct_drive = QPushButton(parent=self, text="Direct drive")
+        turbine_type_direct_drive.setObjectName("orientation_button")
+        turbine_type_direct_drive.setCheckable(True)
+        turbine_type_direct_drive.setChecked(True)
+
+        turbine_type_geared_drive = QPushButton(parent=self, text="Geared drive")
+        turbine_type_geared_drive.setObjectName("orientation_button")
+        turbine_type_geared_drive.setCheckable(True)
+
+        self.turbine_type_group.addButton(turbine_type_direct_drive)
+        self.turbine_type_group.addButton(turbine_type_geared_drive)
+
+        self.turbine_type_container_layout.addWidget(turbine_type_direct_drive)
+        self.turbine_type_container_layout.addWidget(turbine_type_geared_drive)
+
+        self.control_panel.layout().addWidget(self.turbine_type_container)
 
     def initln_path_select(self):
         self.path_select = QGroupBox("Path selection")
@@ -235,7 +260,7 @@ class MainWindow(QMainWindow):
         self.opticalflow_mode_config_panel_layout.addWidget(shapeselect)
 
     def initln_output_customization(self):
-        self.output_params = QGroupBox("Output configuration")
+        self.output_params = QGroupBox("Extra configuration details")
         self.output_params_layout = QGridLayout(self.output_params)
         self.output_params_layout.setSpacing(10)
         self.output_params_layout.setContentsMargins(0, 0, 0, 0)
@@ -243,10 +268,18 @@ class MainWindow(QMainWindow):
         rpm_buffer, rpm_buffer_fld, rpm_buffer_lbl = self.create_labeled_field(
             "RPM smoothing", placeholder_text="15", objname="input_field"
         )
+        rpm_bound, rpm_bound_fld, rpm_bound_lbl = self.create_labeled_field(
+            "RPM acceleration bound", placeholder_text="3", objname="input_field"
+        )
+        turbine_diameter, turbine_diameter_fld, turbine_diameter_lbl = (
+            self.create_labeled_field(
+                "Turbine diameter", placeholder_text="0", objname="input_field"
+            )
+        )
 
-        self.timestamp_check = QCheckBox("Include timestamp of detection")
-        self.frame_tick_check = QCheckBox("Include frame number of detection")
-        self.color_value_check = QCheckBox("Include measured color values")
+        self.timestamp_check = QCheckBox("Log timestamp of detection")
+        self.frame_tick_check = QCheckBox("Log frame number of detection")
+        self.color_value_check = QCheckBox("Log measured color values")
         self.timestamp_check.setChecked(True)
 
         for checkbox in [
@@ -256,8 +289,13 @@ class MainWindow(QMainWindow):
         ]:
             checkbox.setMinimumSize(150, 30)
 
-        self.output_params_layout.addWidget(rpm_buffer_lbl, 1, 0)
-        self.output_params_layout.addWidget(rpm_buffer_fld, 1, 1)
+        self.output_params_layout.addWidget(rpm_buffer_lbl, 0, 0)
+        self.output_params_layout.addWidget(rpm_buffer_fld, 0, 1)
+        self.output_params_layout.addWidget(rpm_bound_lbl, 1, 0)
+        self.output_params_layout.addWidget(rpm_bound_fld, 1, 1)
+        self.output_params_layout.addWidget(turbine_diameter_lbl, 2, 0)
+        self.output_params_layout.addWidget(turbine_diameter_fld, 2, 1)
+
         self.output_params_layout.addWidget(self.timestamp_check, 0, 2)
         self.output_params_layout.addWidget(self.frame_tick_check, 1, 2)
         self.output_params_layout.addWidget(self.color_value_check, 2, 2)
@@ -566,6 +604,12 @@ class MainWindow(QMainWindow):
             items_dict["stack_boxes_vertically"] = False
             items_dict["stack_boxes_horizontally"] = False
 
+        turbine_type = self.turbine_type_group.checkedButton().text()
+        if turbine_type == "Direct drive":
+            items_dict["direct_drive"] = True
+        else:
+            items_dict["direct_drive"] = False
+
         mode = self.mode_group.checkedButton().text()
         if mode == "BPM":
             items_dict["mode"] = "bpm"
@@ -594,7 +638,7 @@ class MainWindow(QMainWindow):
             int(args["Deadzone size x"]),
             int(args["Deadzone size y"]),
         ]
-        del args["Deadzone size "]
+        del args["Deadzone size x"]
         del args["Deadzone size y"]
 
         args["deadzone_shape"] = self.shape_group.checkedButton().text().lower()
@@ -1034,7 +1078,7 @@ if __name__ == "__main__":
         "Trim last N boxes": "trim_last_n_boxes",
         "Frame buffer size": "frame_buffer_size",
         "Update frequency": "color_delta_update_frequency",
-        "Contrast multiplier": "contrast_multiplier",
+        "Contrast multiplier override": "contrast_multiplier",
         "Detection threshold multiplier": "threshold_multiplier",
         "Kernel size": "erosion_dilation_kernel_size",
         "Dilation iterations": "dilation_iterations",
@@ -1045,5 +1089,8 @@ if __name__ == "__main__":
         "Deadzone offset x": "deadzone_offset_x",
         "Deadzone offset y": "deadzone_offset_y",
         "Deadzone shape": "deadzone_shape",
+        "RPM smoothing": "rpm_buffer_length",
+        "RPM acceleration bound": "rpm_acceleration_bound",
+        "Turbine diameter": "turbine_diameter",
     }
     main()

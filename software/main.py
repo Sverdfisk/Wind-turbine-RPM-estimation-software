@@ -71,11 +71,13 @@ def main(feed, params, start_time):
         rpm_buffer = deque(maxlen=params["rpm_buffer_length"])
         deviation, mode = 0, 0
         prev_rpm, rpm = 0, 0
+        feed.process_rpm_bounds()
 
         while True:
             if feed.isActive:
                 # To start, we loop through each bounding box and look at its contents
                 # Each box gets its own frame buffer
+                print(feed.max_rpm)
                 for bounding_box in bounds.values():
                     # Process the region within the box
                     processed_region = bounding_box.dilate_and_erode(
@@ -121,16 +123,14 @@ def main(feed, params, start_time):
                         )
 
                         # Ignore detections if they are unreasonable.
-                        # The ticks are stored but the output is not updated
+                        # The tick has been stored but the output is not updated
                         if rpm_buffer:
-                            last_output = rpm_buffer[-1]
+                            # last_output = rpm_buffer[-1]
 
                             # Turbines wont spin faster than 30RPM. they will not "brake"
                             # faster than a loss of 3 RPM per third of a rotation.
                             # Detections saying otherwise are assumed false.
-                            if rpm < 30 or (
-                                (last_output - 3) < rpm < (last_output + 3)
-                            ):
+                            if feed.rpm_within_bounds(rpm, prev_rpm):
                                 rpm_buffer.append(rpm)
 
                         # The first detection we append anyway
@@ -148,8 +148,10 @@ def main(feed, params, start_time):
                 if args.deploy:
                     if feed.frame_cnt % 1000 == 0:
                         print("RPM calculation is running...")
+
                     # Only append new values
-                    if rpm != prev_rpm:
+                    # if rpm != prev_rpm:
+                    if True:  # logging config for testing
                         tick_timestamp = datetime.now()
                         output_file.write(
                             utils.dynamic_log_string(
@@ -161,6 +163,8 @@ def main(feed, params, start_time):
                                     (mode + feed.threshold_multiplier * deviation),
                                 ),
                                 rpm_buffer,
+                                print_error=True,
+                                real_rpm=feed.real_rpm,
                             )
                         )
                 else:

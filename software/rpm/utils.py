@@ -9,10 +9,10 @@ def calculate_error_percentage(
     if actual_value is None:
         return None
 
-    if measured_value is not None:
+    if measured_value is not None and actual_value != 0:
         error_percentage = abs(measured_value - actual_value) / actual_value * 100
     else:
-        error_percentage = None
+        error_percentage = np.nan
     return error_percentage
 
 
@@ -64,6 +64,8 @@ def dynamic_log_string(
     tick_timestamp,
     colorvals,
     rpm_buffer: deque | list,
+    print_error=False,
+    real_rpm=0,
 ):
     frame_tick_printstr = (
         str(rpm_monitor.frame_cnt) if rpm_monitor.log_frame_ticks else None
@@ -97,7 +99,14 @@ def dynamic_log_string(
             total_out_string += printstr + ","
 
     # The final addition here is a bit weird so we do that one separately
-    total_out_string += rpm_printstr + "\n"
+    total_out_string += rpm_printstr
+
+    if print_error:
+        error = calculate_error_percentage(float(rpm_printstr), real_rpm)
+        total_out_string += "," + str(error)
+
+    total_out_string += "\n"
+
     return total_out_string
 
 
