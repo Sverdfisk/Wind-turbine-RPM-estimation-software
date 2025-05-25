@@ -257,8 +257,12 @@ class BpmCascade(feed.RpmFromFeed):
         hyp_length = math.sqrt((ylen**2) + (xlen**2))
         return hyp_length
 
-    def update_detection_enable_toggle(self, intensity_delta, threshold, mode):
-        if mode - threshold < intensity_delta < mode + threshold:
+    def update_detection_enable_toggle(
+        self, intensity_delta, threshold, mode, frame_ticks
+    ):
+        if (mode - threshold < intensity_delta < mode + threshold) and (
+            self.frame_cnt - (0 if not frame_ticks else frame_ticks[-1]) > 10
+        ):
             self.detection_enable_toggle = True
 
     def blade_detection_in_box_regions(self, deviation: float, mode: float) -> bool:

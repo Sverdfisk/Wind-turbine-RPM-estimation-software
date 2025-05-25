@@ -47,7 +47,7 @@ def main(feed, params, start_time):
                     errors.append(error)
 
                 cv.imshow("Image feed", flow_image)
-                k = cv.waitKey(30) & 0xFF
+                k = cv.waitKey(0) & 0xFF
                 if k == 27:
                     break
 
@@ -67,7 +67,7 @@ def main(feed, params, start_time):
         # Filtering setup
         # deque for ease of use, we only need the last 2 ticks to measure tick time
         frame_ticks = deque(maxlen=2)
-        fb_average_long_buffer = deque(maxlen=int(params["fps"]))
+        fb_average_long_buffer = deque(maxlen=int(params["fps"] * 60))
         rpm_buffer = deque(maxlen=params["rpm_buffer_length"])
         deviation, mode = 0, 0
         prev_rpm, rpm = 0, 0
@@ -140,7 +140,7 @@ def main(feed, params, start_time):
                     feed.detection_enable_toggle = False
 
                 feed.update_detection_enable_toggle(
-                    feed.all_fb_delta_average, deviation, mode
+                    feed.all_fb_delta_average, deviation, mode, frame_ticks
                 )
 
                 # Write, print and other final steps
@@ -178,6 +178,7 @@ def main(feed, params, start_time):
 
                     cv.imshow("Image feed", frame)
                     k = cv.waitKey(1) & 0xFF
+
                     if k == 27:
                         break
 

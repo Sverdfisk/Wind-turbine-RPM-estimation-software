@@ -656,6 +656,7 @@ class MainWindow(QMainWindow):
             "deadzone_size",
             "deadzone_shape",
             "direct_drive",
+            "resize_boxes",
         ]
         for item in remapped_args:
             if item in items_to_skip:
