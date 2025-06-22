@@ -1,0 +1,69 @@
+{
+  "id": 1,
+  "mode": "bpm",
+  "target": "/home/admin/projects/windturbine/software/assets/gtav_front_night_57f53_11r5025.mp4",
+  "ticks": [
+    1,
+    105,
+    199,
+    302,
+    405,
+    499,
+    602,
+    706,
+    800,
+    904,
+    1007,
+    1100,
+    1204
+  ],
+  "fps": 57.5335782769,
+  "real_rpm": 11.5025,
+  "crop_points": [
+    [
+      0,
+      1080
+    ],
+    [
+      0,
+      1920
+    ]
+  ],
+  "ground_angle": 0.7,
+  "deadzone_size": [
+    40,
+    40
+  ],
+  "deadzone_offset_x": 0,
+  "deadzone_offset_y": 0,
+  "pixel_threshold": 20,
+  "deadzone_shape": "circle",
+  "----BPM CASCADE PARAMETERS----": "",
+  "quadrant": 1,
+  "stack_boxes_vertically": false,
+  "stack_boxes_horizontally": true,
+  "erosion_dilation_kernel_size": [
+    5,
+    5
+  ],
+  "dilation_iterations": 1,
+  "erosion_iterations": 1,
+  "dynamically_adjust_boxes": false,
+  "resize_boxes": false,
+  "adjust_num_boxes": false,
+  "target_num_boxes": 13,
+  "target_box_size": 12,
+  "start_from_box": 2,
+  "trim_last_n_boxes": 1,
+  "frame_buffer_size": 5,
+  "color_delta_update_frequency": 4,
+  "contrast_multiplier": 1,
+  "threshold_multiplier": 1,
+  "rpm_buffer_length": 6,
+  "rpm_acceleration_bound": 3,
+  "log_timestamps": false,
+  "log_color_values": true,
+  "log_frame_ticks": true,
+  "turbine_diameter": 0,
+  "direct_drive": true
+}
