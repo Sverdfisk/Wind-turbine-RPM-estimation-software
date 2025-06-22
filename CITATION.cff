@@ -53,6 +53,5 @@ abstract: >-
   on operation conditions. It can process 139 frames per
   second, enabling real-time estimations with zero data
   acquisition downtime during deployment.
-license: GPL-2.0
 commit: 6b8cd6a
 date-released: '2025-06-23'
