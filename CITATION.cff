@@ -1,0 +1,58 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Wind turbine RPM estimation software
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Ken Robin Dugan
+    email: kenrdugan@gmail.com
+  - given-names: Mohammad DK Albab
+    email: m7maddka@gmail.com
+repository-code: 'https://github.com/Sverdfisk/masteroppgave'
+abstract: >-
+  This thesis presents the design and implementation of a
+  prototype system for remote visual monitoring of wind
+  turbines and estimation of their rotational speed. The
+  system is designed to support research on the correlation
+  between wind turbine rotation speed and associated
+  mechanical and aerodynamic noise emissions, with the aim
+  of improving understanding of their impact on
+  environmental sound levels.
+
+
+  The system is intended for long-term deployment while
+  accounting for varying weather and lighting conditions. It
+  includes a custom-made camera module based on Sony's
+  IMX385 image sensor, capable of outputting 10-bit $RAW$
+  data at 1920 $\times$ 1080 resolution and 120 frames per
+  second. The module was designed for compatibility with the
+  Raspberry Pi 5, which serves as the processing platform.
+  The Pi 5 features a media pipeline with an integrated
+  image signal processor capable of converting the $RAW$
+  data into a video stream, offering the potential of
+  real-time rotation speed estimation during deployment.
+
+
+  To ensure broad applicability, the rotation speed
+  estimation software operates independently of the video
+  source and supports both pre-recorded and live-streamed
+  footage. Rotation speed is estimated by computing
+  frame-to-frame color differences within a small region of
+  each frame. Prior to deployment, an operator must generate
+  a configuration file to tune the software to the specific
+  deployment scenario; this is achieved either manually or
+  via the provided user interface. The resulting estimation
+  data are stored locally on the Raspberry Pi 5 for
+  post-deployment analysis. The software has been tested in
+  both real and simulated scenarios, achieving up to 99.86\%
+  estimation accuracy with an average of 97.48\% depending
+  on operation conditions. It can process 139 frames per
+  second, enabling real-time estimations with zero data
+  acquisition downtime during deployment.
+license: GPL-2.0
+commit: 6b8cd6a
+date-released: '2025-06-23'
