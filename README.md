@@ -1,4 +1,4 @@
-# Measuring RPM of wind turbines remotely
+# Visual Monitoring System for Wind Turbine RPM Estimation
 
 ### Thesis:
 "Operators monitoring noise from wind turbines often lack direct access to the turbines’ rotational speed (RPM) data. This master’s thesis aims to address that issue using Sony's IMX385LQR image sensor. 
