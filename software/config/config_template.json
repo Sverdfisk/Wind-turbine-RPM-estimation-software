@@ -1,6 +1,5 @@
 {
   "note": "This template is not designed to be used as valid JSON. Copy it and change the fields accordingly.",
-  "note2": "UI is work in progress :)",
   "----GENERAL PARAMETERS----": "",
   "id": "int. identifier for use in logging to separate runs. Additional runs with the same id value will append results to the same location. Example values: 1, 2, 999123",
   "mode": "string, either 'bpm' or 'opticalflow'. Sets the calculation mode of the program.",
@@ -8,6 +7,7 @@
   "target": "string. Specifies the path to a saved video or a live video feed. Example value: '/dev/video2'",
   "real_rpm": "float. Sets the real RPM of the turbine, if known, to measure error percentage. Set to null if not known. Example values: 21.1, null.",
   "crop_points": "nested list[int] [[y1,y2],[x1,x2]]. Specifies pixel coordinates. The program will crop away anything OUTSIDE of the specified region. Example value: [[0,320],[100,520]]",
+  "contrast_multiplier": "float. Multiplies pixel intensities to adjust image contrast before processing. 1.0 means no adjustment. Example values: 1, 1.3",
   "----OPTICAL FLOW PARAMETERS----": "",
   "ground_angle": "int. The angle from the ground/camera to the turbine hub in radians. Example value (and a neat default): 0.76",
   "deadzone_size": "list[int]. Sets a radius in x and y directions from the center. Optical flow will not be measured inside this region. Example value: [90,90]",
@@ -27,8 +27,17 @@
   "adjust_num_boxes": "bool. Keeps the target number of boxes, but resizes them so that they fit inside the image. Example value: true",
   "target_num_boxes": "int. The desired number of boxes to cascade. Example value: 10",
   "target_box_size": "int. The target size of the boxes that will be cascaded. The side length of the boxes will be equivalent to 2*target_box_size. Example value: 5",
-  "box_start_index": "int. Specifies at which box index to start at from the center/start of cascade. At value 2, for example, the first 3 boxes will not be created. At value 0, all boxes will be created. Example value: 3",
+  "start_from_box": "int. Specifies at which box index to start building the cascade (0 = start from the corner). Example value: 2",
+  "box_start_index": "DEPRECATED – use 'start_from_box' instead; retained for backward compatibility.",
   "trim_last_n_boxes": "int. Specifies how many boxes to cut off at the end of the cascade. At value 2, for example, the 2 last boxes will not be created. At value 0, no boxes at the end will be trimmed away. Example value: 1",
   "frame_buffer_size": "int. Each box has a frame buffer to store N previous frames. This parameter specifies how large that buffer is. A larger buffer means less sensitivity to noise, but less pronounced peaks. Example value: 5",
-  "color_delta_update_frequency": "int. The interval in frames to wait before updating the average. Updating the average frequently will make color changes more gradual/granular, but is susceptible to noise. Example value: 2"
+  "rpm_buffer_length": "int. Length of the rolling buffer used to smooth RPM readings. Choose a small number for responsiveness or a larger one for smoothed and (generally) more accurate readings. Example value: 6",
+  "rpm_acceleration_bound": "float. Maximum allowed RPM change between consecutive detections. Helps filter false positives; units: RPM. Example value: 3",
+  "threshold_multiplier": "float. Multiplier for the standard‑deviation‑based detection threshold. Higher values make detections less sensitive. Example value: 1.0",
+  "turbine_diameter": "float. Physical diameter of the turbine (e.g., in metres). Used to derive realistic RPM limits. Set to 0 to disable diameter‑based limits. Example value: 45.2",
+  "color_delta_update_frequency": "int. The interval in frames to wait before updating the average. Updating the average frequently will make color changes more gradual/granular, but is susceptible to noise. Example value: 2",
+  "----LOGGING PARAMETERS----": "",
+  "log_timestamps": "bool. If true, timestamps of each detection will be written to the output log.",
+  "log_color_values": "bool. If true, the per‑frame colour delta averages, baseline values and thresholds will be written to the output log.",
+  "log_frame_ticks": "bool. If true, the frame count at each detection will be written to the output log."
 }
