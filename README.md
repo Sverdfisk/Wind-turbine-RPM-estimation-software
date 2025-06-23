@@ -54,7 +54,7 @@ Deployment mode is the exact same as testing mode with an added flag.
 
 Deployment mode will run continuously until killed or the saved video ends. The output will be stored in *runs/out.csv*. RPM estimates will only be saved when a new one is calculated.
 
-Extra notes:
+### Additional notes:
 if you want to alter the playback speed, open the main.py file in any editor. Find this line:
 k = cv.waitKey(1) & 0xFF
 
