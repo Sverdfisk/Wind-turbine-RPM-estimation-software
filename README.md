@@ -5,8 +5,8 @@
 The research will involve examining possible hardware configurations and exploring software techniques such as image processing. The project will culminate in a proof-of-concept with the goal of developing a prototype capable of monitoring the rotation of wind turbines and reporting their RPM over a given time interval."
 
 ## Usage
-The code requires a camera or an input video. The feed path is specified in main.py and the RPM is then calculated.
-In the folder, you will find hardware, driver and software folders. The hardware folder has files related to the PCB designs. The driver folder contains a modified driver that needs to be installed on a RaspberryPi for the hardware to work. The software folder contains the software needed for detection.
+The code requires a camera or an input video. The feed path is specified in a config file as "target" and the RPM is then calculated.
+In the project you will find hardware, driver and software folders. The hardware folder has files related to the PCB designs. The driver folder contains a modified driver that needs to be installed on a Raspberry Pi 5 for the camera module to work. The software folder contains the software needed for detection.
 
 Read "Initial setup" first. If you are deploying the system, read "Real setup". If you are testing, modifying or configuring project parameters, read "Test setup".
 
@@ -34,7 +34,6 @@ After generating your config, it should now be saved to the config/ folder with 
 If you want to edit or tinker with the config, you can simply edit it here. This is often much faster than re-generating the entire config through the program if you need a small edit.
 
 The last thing you need to do is to run the program.
-
 
 ### Testing mode:
 
