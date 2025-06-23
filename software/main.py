@@ -15,7 +15,7 @@ import argparse
 
 def main(feed, params, start_time):
     # TODO: refactor the entirety of opticalflow.py
-    #  Flow method setup
+    # Flow method setup
     rpms = []
     errors = []
     if isinstance(feed, opticalflow.OpticalFlow):
@@ -124,9 +124,8 @@ def main(feed, params, start_time):
                         # Ignore detections if they are unreasonable.
                         # The tick has been stored but the output is not updated
                         if rpm_buffer:
-                            # last_output = rpm_buffer[-1]
 
-                            # Turbines wont spin faster than 30RPM. they will not "brake"
+                            # Turbines wont spin faster than 35RPM. they will not "brake"
                             # faster than a loss of 3 RPM per third of a rotation.
                             # Detections saying otherwise are assumed false.
                             if feed.rpm_within_bounds(rpm, prev_rpm):
@@ -149,8 +148,7 @@ def main(feed, params, start_time):
                         print("RPM calculation is running...")
 
                     # Only append new values
-                    # if rpm != prev_rpm:
-                    if True:  # logging config for testing
+                    if rpm != prev_rpm:
                         tick_timestamp = datetime.now()
                         output_file.write(
                             utils.dynamic_log_string(
