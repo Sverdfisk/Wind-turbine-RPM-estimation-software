@@ -1,18 +1,18 @@
-### Measuring RPM of wind turbines remotely
+# Measuring RPM of wind turbines remotely
 
-Thesis:
+### Thesis:
 "Operators monitoring noise from wind turbines often lack direct access to the turbines’ rotational speed (RPM) data. This master’s thesis aims to address that issue using Sony's IMX385LQR image sensor. 
 The research will involve examining possible hardware configurations and exploring software techniques such as image processing. The project will culminate in a proof-of-concept with the goal of developing a prototype capable of monitoring the rotation of wind turbines and reporting their RPM over a given time interval."
 
 The code requires a camera or an input video. The feed path is specified in main.py and the RPM is then calculated.
 
-### Usage
+## Usage
 
 In the folder, you will find hardware, driver and software folders. The hardware folder has files related to the PCB designs. The driver folder contains a modified driver that needs to be installed on a RaspberryPi for the hardware to work. The software folder contains the software needed for detection.
 
 Read "Initial setup" first. If you are deploying the system, read "Real setup". If you are testing, modifying or configuring project parameters, read "Test setup".
 
-## Initial setup
+### Initial setup
 1. Clone the project
 2. Enter the software folder
 In this folder, you will see everything that is needed if you are simulating a video feed or if you are configurating the project.
@@ -38,7 +38,7 @@ If you want to edit or tinker with the config, you can simply edit it here. This
 The last thing you need to do is to run the program.
 
 
-## Testing mode:
+### Testing mode:
 
 Default testing mode - printing the output and useful detection statistics straight into the command line for you to view:
 *python main.py config/yourconfig.json*
@@ -48,13 +48,14 @@ If you want to exit the program early, press the ESC key or CTRL+C while it's ru
 You will now have your output, either in the command line or in a newly generated file in out/. 
 
 
-## Deployment mode:
+### Deployment mode:
 Deployment mode is the exact same as testing mode with an added flag.
 *python main.py config/yourconfig.json -d*
 
 Deployment mode will run continuously until killed or the saved video ends. The output will be stored in *runs/out.csv*. RPM estimates will only be saved when a new one is calculated.
 
-### Additional notes:
+
+## Extra notes:
 if you want to alter the playback speed, open the main.py file in any editor. Find this line:
 k = cv.waitKey(1) & 0xFF
 
