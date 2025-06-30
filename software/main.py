@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
-import cv2 as cv
+
+# import cv2 as cv
 import numpy as np
 from collections import deque
 from rpm import opticalflow
@@ -124,7 +125,6 @@ def main(feed, params, start_time):
                         # Ignore detections if they are unreasonable.
                         # The tick has been stored but the output is not updated
                         if rpm_buffer:
-
                             # Turbines wont spin faster than 35RPM. they will not "brake"
                             # faster than a loss of 3 RPM per third of a rotation.
                             # Detections saying otherwise are assumed false.
@@ -148,7 +148,8 @@ def main(feed, params, start_time):
                         print("RPM calculation is running...")
 
                     # Only append new values
-                    if rpm != prev_rpm:
+                    # if rpm != prev_rpm:
+                    if True:
                         tick_timestamp = datetime.now()
                         output_file.write(
                             utils.dynamic_log_string(

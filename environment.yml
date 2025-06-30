@@ -1,9 +1,0 @@
-name: yolocv
-channels:
-  - https://repo.anaconda.com/pkgs/main
-  - https://repo.anaconda.com/pkgs/r
-dependencies:
-  - opencv
-  - pipreqs
-  - pyqt
-prefix: /home/ken/miniconda3/envs/yolocv
