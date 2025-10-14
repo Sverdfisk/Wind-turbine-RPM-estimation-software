@@ -68,7 +68,7 @@ Deployment mode will run continuously until killed or the saved video ends. The 
 
 
 ## Extra notes:
-if you want to alter the playback speed, open the main.py file in any editor. Find this line:
+if you want to alter the playback speed when viewing a pre-saved video, open the main.py file in any editor. Find this line:
 k = cv.waitKey(1) & 0xFF
 
 You can change the value in the parenthesis to your liking. Below are some examples:
