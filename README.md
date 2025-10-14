@@ -1,10 +1,23 @@
 # Visual Monitoring System for Wind Turbine RPM Estimation
 
-### Thesis:
+## Thesis:
 "Operators monitoring noise from wind turbines often lack direct access to the turbines’ rotational speed (RPM) data. This master’s thesis aims to address that issue using Sony's IMX385LQR image sensor. 
 The research will involve examining possible hardware configurations and exploring software techniques such as image processing. The project will culminate in a proof-of-concept with the goal of developing a prototype capable of monitoring the rotation of wind turbines and reporting their RPM over a given time interval."
 
-## Usage
+
+## Intro
+This repository provides RPM estimation software, Altium files for a custom PCB for the IMX385, and driver files. The driver files are for a Raspberry Pi 5 and works as a compatability layer for the image sensor to work properly.
+
+### Notes and issues:
+- The image pipeline (V4L2 pipeline) is not automatically set up, meaning that manual effort is required to extract frames. The driver/ folder provides some helpful scripts, but is not a complete configuration. The sensor can still send images to the Pi 5 as pixel data with no formatting.
+
+## Setting up the hardware
+- GPIO pins from the PCB to the Raspberry Pi need to be attached. The driver/ folder contains code to be run on the Pi, enabling the GPIO pins for the sensor in a strict, necessary sequence. See driver/imx-on.py for pin numbers and names. The GPIO pins used can in some cases be changed. If you need to change these values, ensure that pin compatability is retained by looking at the Pi 5's GPIO pinout.
+- Ensure that the FFC is connected correctly on both the Pi and the custom PCB. The FFC pins should be pointing *towards* the PCB itself when connecting the cable, such that they are not visible when looking at the PCB from the top.
+- **Important**: A small hack-job is required to connect the sequencer correctly. Use the ***SEQ*** test point on the PCB as an input voltage by attaching it to a GPIO pin on the Pi 5. In the default case, the imx-on.py file assumes it is connected to pin 26. Make sure you change this pin value in imx-on.py if you choose another pin to connect it to.
+
+
+## Using the software
 The code requires a camera or an input video. The feed path is specified in a config file as "target" and the RPM is then calculated.
 In the project you will find hardware, driver and software folders. The hardware folder has files related to the PCB designs. The driver folder contains a modified driver that needs to be installed on a Raspberry Pi 5 for the camera module to work. The software folder contains the software needed for detection.
 
