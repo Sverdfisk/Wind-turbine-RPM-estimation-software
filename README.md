@@ -6,7 +6,7 @@ The research will involve examining possible hardware configurations and explori
 
 
 ## Intro
-This repository provides RPM estimation software, Altium files for a custom PCB for the IMX385, and driver files. The driver files are for a Raspberry Pi 5 and works as a compatability layer for the image sensor to work properly.
+This repository provides RPM estimation software, Altium files for a custom PCB for the IMX385, and driver files. The driver files are for a Raspberry Pi 5 and works as a compatability layer for the image sensor to work properly. Each component of the project can be used on its own if desired. This means that the custom PCB, driver, or RPM detection software can be used without necessarily depending on the other modules.
 
 ### Notes and issues:
 - The image pipeline (V4L2 pipeline) is not automatically set up, meaning that manual effort is required to extract frames. The driver/ folder provides some helpful scripts, but is not a complete configuration. The sensor can still send images to the Pi 5 as pixel data with no formatting.
