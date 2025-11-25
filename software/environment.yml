@@ -291,4 +291,3 @@ dependencies:
   - pip:
       - pyqt6==6.9.1
       - pyqt6-qt6==6.9.1
-prefix: /home/ken/miniconda3/envs/yolocv
